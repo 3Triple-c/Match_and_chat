@@ -1,15 +1,27 @@
 import GroupList from "../../components/groups/GroupList";
-import CreateGroup from "../../components/groups/CreateGroup";
 import GroupDetails from "../../components/groups/GroupDetails";
 
 export default function GroupsPage() {
   return (
-    <div style={{ display: "flex", gap: "20px" }}>
-      <div>
-        <CreateGroup />
-        <GroupList />
+    <div className="page">
+      <div className="page-header groups-header">
+        <div>
+          <h1>Groups</h1>
+          <p className="muted">Your study groups and live chat.</p>
+        </div>
+        <div className="groups-header-note">
+          <span className="badge">Live chat</span>
+          <span className="badge">Shared focus</span>
+        </div>
       </div>
-      <GroupDetails />
+      <div className="page-body">
+        <div className="sidebar">
+          <GroupList />
+        </div>
+        <div className="content">
+          <GroupDetails />
+        </div>
+      </div>
     </div>
   );
 }

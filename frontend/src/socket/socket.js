@@ -1,21 +1,34 @@
 import { io } from "socket.io-client";
 import useMatchStore from "../stores/matchStore";
+import { useGroupStore } from "../stores/groupStore";
 let socket = null;
+const runtimeSocketUrl = import.meta.env.VITE_SOCKET_URL || undefined;
 export const connectSocket = token => {
-  if (socket) return socket;
+  if (socket) {
+    if (!socket.connected) {
+      socket.connect();
+    }
+    return socket;
+  }
 
-  socket = io("http://localhost:5000", {
+  socket = io(runtimeSocketUrl, {
     auth: { token },
-    transports: ["polling"],
+    transports: ["websocket", "polling"],
+    reconnection: true,
   });
 
-  socket.on("match:failed", ({ matchId, reason }) => {
+  socket.on("match:failed", ({ reason }) => {
     console.log(reason);
-    useMatchStore.getState().clearActiveMatch();
+    useMatchStore.getState().fetchActiveMatches();
   });
 
   socket.on("match:created", () => {
-    useMatchStore.getState().fetchActiveMatch();
+    useMatchStore.getState().fetchActiveMatches();
+  });
+
+  socket.on("group:created", () => {
+    useMatchStore.getState().fetchActiveMatches();
+    useGroupStore.getState().fetchMyGroups();
   });
 
   return socket;

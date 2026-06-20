@@ -1,0 +1,1543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StuGrMat Architecture Map</title>
+  <style>
+    :root {
+      --bg: #f5f3ee;
+      --panel: #faf8f4;
+      --card: #ffffff;
+      --text: #263238;
+      --muted: #607d8b;
+      --line: #d5d2ca;
+      --accent: #a5c2b1;
+      --accent-2: #e0c0a5;
+      --accent-3: #c78a8c;
+      --navy: #263238;
+      --shadow: 0 12px 30px rgba(38, 50, 56, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      background:
+        radial-gradient(circle at top left, rgba(165, 194, 177, 0.22), transparent 28%),
+        radial-gradient(circle at top right, rgba(224, 192, 165, 0.2), transparent 22%),
+        linear-gradient(180deg, #f8f6f0 0%, #f2efe8 100%);
+      color: var(--text);
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      border-right: 1px solid var(--line);
+      background: rgba(250, 248, 244, 0.92);
+      backdrop-filter: blur(8px);
+      padding: 24px 20px;
+      overflow-y: auto;
+    }
+
+    .content {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      min-width: 0;
+    }
+
+    .hero {
+      padding: 24px 28px 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.74);
+      backdrop-filter: blur(6px);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 2rem;
+      letter-spacing: 0.02em;
+    }
+
+    .lede {
+      margin: 10px 0 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    .search {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 12px 16px;
+      background: var(--card);
+      color: var(--text);
+      font: inherit;
+      box-shadow: inset 0 1px 3px rgba(38, 50, 56, 0.05);
+    }
+
+    .button {
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--navy);
+      border-radius: 999px;
+      padding: 10px 14px;
+      cursor: pointer;
+      font: inherit;
+      box-shadow: var(--shadow);
+      transition: transform 140ms ease, border-color 140ms ease;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+      border-color: var(--accent);
+    }
+
+    .viewport {
+      position: relative;
+      overflow: auto;
+      padding: 18px 20px 24px;
+    }
+
+    svg {
+      display: block;
+      min-width: 1200px;
+    }
+
+    .node rect {
+      fill: var(--card);
+      stroke: var(--line);
+      stroke-width: 1.25;
+      rx: 14;
+      ry: 14;
+      filter: drop-shadow(0 8px 18px rgba(38, 50, 56, 0.09));
+    }
+
+    .node.group rect {
+      fill: #fdfaf4;
+    }
+
+    .node.file rect {
+      fill: #ffffff;
+    }
+
+    .node.active rect {
+      stroke: var(--navy);
+      stroke-width: 2;
+    }
+
+    .node.match rect {
+      stroke: #c67b52;
+      stroke-width: 2;
+    }
+
+    .node text.label {
+      font-size: 14px;
+      font-weight: 700;
+      fill: var(--navy);
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    .node text.meta {
+      font-size: 11px;
+      fill: var(--muted);
+      font-family: "Segoe UI", sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .link {
+      fill: none;
+      stroke: rgba(96, 125, 139, 0.42);
+      stroke-width: 2;
+    }
+
+    .toggle {
+      fill: var(--navy);
+      font-size: 11px;
+      font-family: "Segoe UI", sans-serif;
+      font-weight: 700;
+      pointer-events: none;
+    }
+
+    .details h2,
+    .tips h2 {
+      margin: 0 0 12px;
+      font-size: 0.92rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+
+    .panel details {
+      margin: -2px;
+    }
+
+    .panel summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-family: "Segoe UI", sans-serif;
+      font-size: 0.92rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .panel summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .summary-caret {
+      font-size: 1rem;
+      color: var(--navy);
+      transition: transform 150ms ease;
+    }
+
+    details[open] .summary-caret {
+      transform: rotate(90deg);
+    }
+
+    .details-title {
+      font-size: 1.3rem;
+      margin: 0 0 4px;
+    }
+
+    .details-type {
+      font-family: "Segoe UI", sans-serif;
+      font-size: 0.85rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 14px;
+    }
+
+    .details p,
+    .details li,
+    .tips p,
+    .legend li {
+      margin: 0;
+      line-height: 1.5;
+      color: var(--text);
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    .details ul,
+    .legend ul {
+      margin: 10px 0 0;
+      padding-left: 18px;
+    }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+      font-family: "Segoe UI", sans-serif;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      border: 1px solid var(--line);
+      background: #fffdf8;
+    }
+
+    .chip strong {
+      color: var(--navy);
+    }
+
+    .path {
+      display: block;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #f7f5ef;
+      border: 1px dashed var(--line);
+      color: var(--muted);
+      font-family: Consolas, monospace;
+      font-size: 0.82rem;
+      word-break: break-word;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      display: inline-block;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    .dot-root { background: var(--navy); }
+    .dot-system { background: var(--accent); }
+    .dot-domain { background: var(--accent-2); }
+    .dot-file { background: var(--accent-3); }
+
+    .legend-grid {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .legend-card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px;
+      background: #fffdfa;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    .legend-card:hover {
+      transform: translateY(-1px);
+      border-color: var(--accent);
+    }
+
+    .legend-card.active {
+      border-color: var(--navy);
+      background: #fffaf0;
+    }
+
+    .legend-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+      font-family: "Segoe UI", sans-serif;
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .legend-pill {
+      width: 28px;
+      height: 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      display: inline-block;
+      background: #fff;
+    }
+
+    .legend-pill.root { background: #263238; border-color: #263238; }
+    .legend-pill.system { background: #e8f1eb; }
+    .legend-pill.domain { background: #f7eadc; }
+    .legend-pill.file { background: #fff; }
+
+    .legend-card p {
+      font-family: "Segoe UI", sans-serif;
+      color: var(--muted);
+      line-height: 1.45;
+      margin: 0;
+      font-size: 0.92rem;
+    }
+
+    .legend-hint {
+      margin-top: 14px;
+      font-family: "Segoe UI", sans-serif;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 1100px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        border-right: none;
+        border-top: 1px solid var(--line);
+        order: 2;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <section class="panel details">
+        <h2>Selected Node</h2>
+        <div id="details"></div>
+      </section>
+
+      <section class="panel legend">
+        <details open>
+          <summary>
+            <span>Map Legend</span>
+            <span class="summary-caret">›</span>
+          </summary>
+          <div class="legend-grid">
+            <div class="legend-card" data-legend-filter="root">
+              <div class="legend-top"><span class="legend-pill root"></span>Platform root</div>
+              <p>The whole product surface. In this map, that is the single top-level `StuGrMat` node.</p>
+            </div>
+            <div class="legend-card" data-legend-filter="system">
+              <div class="legend-top"><span class="legend-pill system"></span>Big system area</div>
+              <p>Large slices of the codebase like frontend, backend, and shared runtime integrations.</p>
+            </div>
+            <div class="legend-card" data-legend-filter="domain">
+              <div class="legend-top"><span class="legend-pill domain"></span>Domain module</div>
+              <p>Functional groupings inside a system, like auth, groups, sessions, admin, or collaboration.</p>
+            </div>
+            <div class="legend-card" data-legend-filter="file">
+              <div class="legend-top"><span class="legend-pill file"></span>Implementation file</div>
+              <p>Concrete files where behavior lives: controllers, stores, components, models, hooks, and utilities.</p>
+            </div>
+          </div>
+          <p class="legend-hint">Click a legend card to highlight that node category. Click the same card again or reset the view to clear it. Live session materials stay in the current session and do not automatically carry into the next class.</p>
+        </details>
+      </section>
+
+      <section class="panel tips">
+        <h2>How To Use</h2>
+        <p>Click any node to inspect it. Click the little circle on parent nodes to collapse or expand that part of the system. Use search to jump to a file, domain, or feature like <code>session</code>, <code>match</code>, <code>whiteboard</code>, or <code>admin</code>.</p>
+      </section>
+    </aside>
+
+    <main class="content">
+      <header class="hero">
+        <h1>StuGrMat Interactive Architecture Map</h1>
+        <p class="lede">
+          A navigable dependency view of the full project: frontend, backend, models, stores, realtime infrastructure, utilities, and the main runtime flows.
+        </p>
+        <div class="controls">
+          <input id="search" class="search" type="search" placeholder="Search files, domains, features, or paths..." />
+          <button class="button" id="expandAll">Expand all</button>
+          <button class="button" id="collapseAll">Collapse to systems</button>
+          <button class="button" id="resetView">Reset search</button>
+        </div>
+      </header>
+
+      <section class="viewport">
+        <svg id="map" width="2200" height="1800" aria-label="StuGrMat architecture map"></svg>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const data = {
+      id: "root",
+      label: "StuGrMat",
+      type: "root",
+      path: "c:/Users/colli/OneDrive/Documentos/Documents/Documents/StuGrMat",
+      description: "Full-stack study-group platform with matching, persistent groups, structured live sessions, realtime collaboration, and admin monitoring.",
+      dependsOn: ["MongoDB", "Express", "React", "Socket.IO", "WebRTC", "OpenAI"],
+      usedBy: ["Students", "Group creators", "Admins"],
+      children: [
+        {
+          id: "frontend-system",
+          label: "Frontend SPA",
+          type: "system",
+          path: "frontend/src",
+          description: "React single-page app responsible for auth, dashboards, groups, study sessions, admin views, and realtime collaborative UI.",
+          dependsOn: ["React", "Zustand", "Axios", "Socket.IO client", "WebRTC media APIs"],
+          usedBy: ["Users", "Admins"],
+          children: [
+            {
+              id: "frontend-entry",
+              label: "Entry + Routing",
+              type: "domain",
+              path: "frontend/src",
+              description: "Bootstraps the app, reconnects sockets, and splits navigation into public, user, and admin route trees.",
+              dependsOn: ["Frontend SPA", "Auth store", "Socket store"],
+              usedBy: ["All screens"],
+              children: [
+                {
+                  id: "fe-main",
+                  label: "main.jsx",
+                  type: "file",
+                  path: "frontend/src/main.jsx",
+                  description: "Creates the React root, loads global styles, and mounts the application.",
+                  dependsOn: ["App.jsx", "index.css"]
+                },
+                {
+                  id: "fe-app",
+                  label: "App.jsx",
+                  type: "file",
+                  path: "frontend/src/App.jsx",
+                  description: "Reconnects the socket when a token already exists and renders the route tree.",
+                  dependsOn: ["routes/AppRoutes.jsx", "stores/authStore.js", "stores/socketStore.js"]
+                },
+                {
+                  id: "fe-routes",
+                  label: "AppRoutes.jsx",
+                  type: "file",
+                  path: "frontend/src/routes/AppRoutes.jsx",
+                  description: "Declares public auth routes, protected user routes, and protected admin routes.",
+                  dependsOn: ["components/ProtectedRoute.jsx", "layouts/UserLayout.jsx", "layouts/AdminLayout.jsx"]
+                },
+                {
+                  id: "fe-protected",
+                  label: "ProtectedRoute.jsx",
+                  type: "file",
+                  path: "frontend/src/components/ProtectedRoute.jsx",
+                  description: "Guards routes with token + optional role checks and fetches the current user if needed.",
+                  dependsOn: ["stores/authStore.js"]
+                }
+              ]
+            },
+            {
+              id: "frontend-layouts-pages",
+              label: "Layouts + Pages",
+              type: "domain",
+              path: "frontend/src/layouts, frontend/src/pages",
+              description: "Top-level shells and page-level screens for users and admins.",
+              dependsOn: ["Stores", "Components"],
+              usedBy: ["Route tree"],
+              children: [
+                {
+                  id: "fe-user-layout",
+                  label: "UserLayout.jsx",
+                  type: "file",
+                  path: "frontend/src/layouts/UserLayout.jsx",
+                  description: "Main user shell with nav, profile entry point, and logout control.",
+                  dependsOn: ["components/ProfileModal.jsx", "stores/authStore.js"]
+                },
+                {
+                  id: "fe-admin-layout",
+                  label: "AdminLayout.jsx",
+                  type: "file",
+                  path: "frontend/src/layouts/AdminLayout.jsx",
+                  description: "Admin shell with module navigation for overview, users, groups, and matches.",
+                  dependsOn: ["stores/authStore.js"]
+                },
+                {
+                  id: "fe-login",
+                  label: "Login.jsx",
+                  type: "file",
+                  path: "frontend/src/pages/auth/Login.jsx",
+                  description: "Auth entry screen that logs users in and redirects by role.",
+                  dependsOn: ["stores/authStore.js"]
+                },
+                {
+                  id: "fe-register",
+                  label: "Register.jsx",
+                  type: "file",
+                  path: "frontend/src/pages/auth/Register.jsx",
+                  description: "Registration flow with study-time selection and searchable interests.",
+                  dependsOn: ["stores/authStore.js", "components/InterestSelector.jsx", "constants/studyTime.js"]
+                },
+                {
+                  id: "fe-dashboard",
+                  label: "Dashboard.jsx",
+                  type: "file",
+                  path: "frontend/src/pages/user/Dashboard.jsx",
+                  description: "Shows user streaks, availability, next match/group signals, and group/session summaries.",
+                  dependsOn: ["stores/authStore.js", "stores/groupStore.js", "stores/matchStore.js"]
+                },
+                {
+                  id: "fe-groups-page",
+                  label: "GroupsPage.jsx",
+                  type: "file",
+                  path: "frontend/src/pages/user/GroupsPage.jsx",
+                  description: "Hosts the list-detail group interface and loads group/session state.",
+                  dependsOn: ["components/groups/GroupList.jsx", "components/groups/GroupDetails.jsx", "stores/groupStore.js"]
+                },
+                {
+                  id: "fe-chats",
+                  label: "Chats.jsx",
+                  type: "file",
+                  path: "frontend/src/pages/user/Chats.jsx",
+                  description: "Legacy/extra chat-oriented user page.",
+                  dependsOn: ["stores/messageStore.js"]
+                },
+                {
+                  id: "fe-admin-dashboard",
+                  label: "AdminDashboard.jsx",
+                  type: "file",
+                  path: "frontend/src/pages/admin/AdminDashboard.jsx",
+                  description: "Overview metrics, run-matching action, global search, and system visibility for admins.",
+                  dependsOn: ["stores/adminStore.js"]
+                },
+                {
+                  id: "fe-admin-users",
+                  label: "Users.jsx",
+                  type: "file",
+                  path: "frontend/src/pages/admin/Users.jsx",
+                  description: "Admin user table with online-state visibility and filtering.",
+                  dependsOn: ["stores/adminStore.js"]
+                },
+                {
+                  id: "fe-admin-groups",
+                  label: "Groups.jsx",
+                  type: "file",
+                  path: "frontend/src/pages/admin/Groups.jsx",
+                  description: "Admin group monitoring page.",
+                  dependsOn: ["stores/adminStore.js"]
+                },
+                {
+                  id: "fe-admin-matches",
+                  label: "Matches.jsx",
+                  type: "file",
+                  path: "frontend/src/pages/admin/Matches.jsx",
+                  description: "Admin match monitoring page.",
+                  dependsOn: ["stores/adminStore.js"]
+                }
+              ]
+            },
+            {
+              id: "frontend-state",
+              label: "State Stores",
+              type: "domain",
+              path: "frontend/src/stores",
+              description: "Zustand stores that own REST calls, socket lifecycle, and app-side domain state.",
+              dependsOn: ["API layer", "Socket layer"],
+              usedBy: ["Layouts", "Pages", "Components"],
+              children: [
+                {
+                  id: "fe-auth-store",
+                  label: "authStore.js",
+                  type: "file",
+                  path: "frontend/src/stores/authStore.js",
+                  description: "Token/user authority for login, register, me, availability, profile updates, and logout, with safe storage access and ngrok-aware startup so mobile browsers do not blank the app on startup.",
+                  dependsOn: ["api/auth.api.js", "socket/socket.js", "stores/socketStore.js"]
+                },
+                {
+                  id: "fe-group-store",
+                  label: "groupStore.js",
+                  type: "file",
+                  path: "frontend/src/stores/groupStore.js",
+                  description: "Loads groups, active group details, group settings, and planned-session changes.",
+                  dependsOn: ["api/axios.js"]
+                },
+                {
+                  id: "fe-match-store",
+                  label: "matchStore.js",
+                  type: "file",
+                  path: "frontend/src/stores/matchStore.js",
+                  description: "Manages active match queue and accept/reject flows that may create groups.",
+                  dependsOn: ["api/match.api.js", "stores/groupStore.js"]
+                },
+                {
+                  id: "fe-session-store",
+                  label: "sessionStore.js",
+                  type: "file",
+                  path: "frontend/src/stores/sessionStore.js",
+                  description: "Primary client-side session orchestration store for lobby, teacher-ready, teacher-only live materials, live phases, quiz, reveal, whiteboard, break media, history, and end-of-session cleanup.",
+                  dependsOn: ["api/axios.js"]
+                },
+                {
+                  id: "fe-socket-store",
+                  label: "socketStore.js",
+                  type: "file",
+                  path: "frontend/src/stores/socketStore.js",
+                  description: "Owns connection/disconnection state around the shared socket singleton.",
+                  dependsOn: ["socket/socket.js"]
+                },
+                {
+                  id: "fe-admin-store",
+                  label: "adminStore.js",
+                  type: "file",
+                  path: "frontend/src/stores/adminStore.js",
+                  description: "Fetches overview, users, groups, matches, search results, and admin-triggered matching runs.",
+                  dependsOn: ["api/axios.js"]
+                }
+              ]
+            },
+            {
+              id: "frontend-collab",
+              label: "Realtime + Collaboration UI",
+              type: "domain",
+              path: "frontend/src/components, frontend/src/hooks, frontend/src/socket",
+                  description: "Interactive group session surface: chat, whiteboard, current-session teaching materials, break lounge with themed ambience, room activity feed, floating reaction bubbles, a local room-volume slider, synchronized room music playback from direct URLs or built-in /music assets, persistent voice room, reveal flow, session controls, live speaker meters, reaction chips, and on-screen audio debugging for join/negotiation tracing with quiz-time collapsing. Current materials are reset when a class ends so old PDFs do not bleed into the next session, and teachers can now withdraw an uploaded file without deleting the rest of the plan. Teacher revoke now creates a separate revoked state that hard-mutes the target speaker, clears speaking approval, blocks whiteboard edits, and requires a fresh mic request before re-approval, while teacher selection now looks back across recent sessions so the same teacher does not repeat too often.",
+              dependsOn: ["Session store", "Socket store"],
+              usedBy: ["Groups page"],
+              children: [
+                {
+                  id: "fe-session-panel",
+                  label: "StudySessionPanel.jsx",
+                  type: "file",
+                  path: "frontend/src/components/groups/StudySessionPanel.jsx",
+                  description: "Main structured-study UI for lobby creation, teacher readiness, lobby mic checks, teacher-owned mic controls during lobby and active phases, group-level next-session planning with finalized vote hiding, live speaking meters, live-stroke whiteboard, current-session materials, quiz collapse, break lounge with ambient theme cards, floating reactions, local room volume, live activity feed, and reveal state. Revoke now shows a distinct revoked state that requires a fresh mic request and blocks whiteboard use until the teacher re-approves the speaker.",
+                  dependsOn: ["stores/sessionStore.js", "stores/groupStore.js", "hooks/useBreakAudio.js", "socket/socket.js"]
+                },
+                {
+                  id: "fe-group-details",
+                  label: "GroupDetails.jsx",
+                  type: "file",
+                  path: "frontend/src/components/groups/GroupDetails.jsx",
+                  description: "Wraps the group meta view, study-session panel, and group chat area.",
+                  dependsOn: ["components/groups/StudySessionPanel.jsx", "components/chat/GroupChat.jsx", "stores/groupStore.js"]
+                },
+                {
+                  id: "fe-group-list",
+                  label: "GroupList.jsx",
+                  type: "file",
+                  path: "frontend/src/components/groups/GroupList.jsx",
+                  description: "Selectable group sidebar with streak and upcoming-session summary.",
+                  dependsOn: ["stores/groupStore.js"]
+                },
+                {
+                  id: "fe-group-chat",
+                  label: "GroupChat.jsx",
+                  type: "file",
+                  path: "frontend/src/components/chat/GroupChat.jsx",
+                  description: "Phase-aware chat UI that respects session permissions and microphone/speaker state.",
+                  dependsOn: ["hooks/useGroupChat.js", "stores/sessionStore.js"]
+                },
+                {
+                  id: "fe-use-group-chat",
+                  label: "useGroupChat.js",
+                  type: "file",
+                  path: "frontend/src/hooks/useGroupChat.js",
+                  description: "Socket-powered group chat hook for joining a group room, listening to messages, and emitting sends safely.",
+                  dependsOn: ["socket/socket.js"]
+                },
+                {
+                  id: "fe-break-audio",
+                  label: "useBreakAudio.js",
+                  type: "file",
+                  path: "frontend/src/hooks/useBreakAudio.js",
+                  description: "WebRTC peer-audio orchestration hook that uses Socket.IO as signaling transport, buffers ICE candidates until remote descriptions are ready, exposes audio debug events, and keeps the room joined until the user leaves or the session ends.",
+                  dependsOn: ["socket/socket.js", "Browser media APIs"]
+                },
+                {
+                  id: "fe-socket-client",
+                  label: "socket.js",
+                  type: "file",
+                  path: "frontend/src/socket/socket.js",
+                  description: "Shared Socket.IO client singleton plus global listeners that refresh match/group state.",
+                  dependsOn: ["socket.io-client", "stores/matchStore.js", "stores/groupStore.js"]
+                }
+              ]
+            },
+            {
+              id: "frontend-api-style",
+              label: "API + Shared UI Utilities",
+              type: "domain",
+              path: "frontend/src/api, frontend/src/components, frontend/src/constants",
+              description: "Axios client, small API wrappers, selectors, profile editing, and cross-screen constants/styles.",
+              dependsOn: ["Axios"],
+              usedBy: ["Stores", "Pages", "Components"],
+              children: [
+                {
+                  id: "fe-axios",
+                  label: "axios.js",
+                  type: "file",
+                  path: "frontend/src/api/axios.js",
+                  description: "Configured Axios instance for backend REST access using a runtime path and Vite proxy so phone/LAN/ngrok testing can follow the page origin or an override URL; mic features still require a secure context on mobile.",
+                  dependsOn: ["Axios"]
+                },
+                {
+                  id: "fe-auth-api",
+                  label: "auth.api.js",
+                  type: "file",
+                  path: "frontend/src/api/auth.api.js",
+                  description: "Thin auth REST wrapper.",
+                  dependsOn: ["api/axios.js"]
+                },
+                {
+                  id: "fe-match-api",
+                  label: "match.api.js",
+                  type: "file",
+                  path: "frontend/src/api/match.api.js",
+                  description: "Thin match REST wrapper.",
+                  dependsOn: ["api/axios.js"]
+                },
+                {
+                  id: "fe-interest-selector",
+                  label: "InterestSelector.jsx",
+                  type: "file",
+                  path: "frontend/src/components/InterestSelector.jsx",
+                  description: "Searchable subject picker used during registration/profile editing.",
+                  dependsOn: ["api/interest.api.js"]
+                },
+                {
+                  id: "fe-profile-modal",
+                  label: "ProfileModal.jsx",
+                  type: "file",
+                  path: "frontend/src/components/ProfileModal.jsx",
+                  description: "User profile editor, including primary interest and study-time changes.",
+                  dependsOn: ["stores/authStore.js", "constants/studyTime.js"]
+                },
+                {
+                  id: "fe-style",
+                  label: "index.css",
+                  type: "file",
+                  path: "frontend/src/index.css",
+                  description: "Global design system and page/component styling for the entire SPA.",
+                  dependsOn: []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: "backend-system",
+          label: "Backend API + Realtime Server",
+          type: "system",
+          path: "backend",
+          description: "Express application with MongoDB persistence, Socket.IO realtime coordination, scheduled automation, session-state orchestration, and optional static hosting of the built frontend for single-origin mobile/tunnel access.",
+          dependsOn: ["Express", "Mongoose", "Socket.IO", "JWT", "Node timers"],
+          usedBy: ["Frontend SPA", "Socket client", "Admin views"],
+          children: [
+            {
+              id: "backend-entry",
+              label: "Server Entry + Runtime Jobs",
+              type: "domain",
+              path: "backend",
+              description: "Bootstraps the backend runtime and background processes.",
+              dependsOn: ["Routes", "Socket middleware", "Jobs", "DB models"],
+              usedBy: ["All backend subsystems"],
+              children: [
+                {
+                  id: "be-index",
+                  label: "index.js",
+                  type: "file",
+                  path: "backend/index.js",
+                  description: "Backend entrypoint that mounts routes, connects MongoDB, seeds interests, starts Socket.IO, auto-start scheduler, and match cleanup.",
+                  dependsOn: ["routes/*", "middleware/socket.js", "jobs/matchCleanup.js", "utils/seedInterests.js", "controllers/sessionController.js"]
+                },
+                {
+                  id: "be-match-cleanup",
+                  label: "matchCleanup.js",
+                  type: "file",
+                  path: "backend/jobs/matchCleanup.js",
+                  description: "Periodic cleanup/expiry handling for matches.",
+                  dependsOn: ["models/Match.js"]
+                },
+                {
+                  id: "be-seed-interests",
+                  label: "seedInterests.js",
+                  type: "file",
+                  path: "backend/utils/seedInterests.js",
+                  description: "Ensures the interest catalog exists after boot.",
+                  dependsOn: ["models/Interest.js"]
+                },
+                {
+                  id: "be-script-admin",
+                  label: "makeAdmin.js",
+                  type: "file",
+                  path: "backend/scripts/makeAdmin.js",
+                  description: "Operational script for promoting a user to admin role.",
+                  dependsOn: ["models/User.js"]
+                }
+              ]
+            },
+            {
+              id: "backend-http",
+              label: "HTTP API Domains",
+              type: "domain",
+              path: "backend/routes, backend/controllers",
+              description: "REST route/controller layer split by auth, user, group, match, message, interest, admin, and session domains.",
+              dependsOn: ["Models", "Middleware", "Utilities"],
+              usedBy: ["Frontend stores"],
+              children: [
+                {
+                  id: "be-auth-domain",
+                  label: "Auth domain",
+                  type: "group",
+                  path: "backend/routes/authRoute.js + backend/controllers/authController.js",
+                  description: "Registration, login, token issuance, and auth response shaping.",
+                  dependsOn: ["models/User.js", "utils/jwt.js"],
+                  children: [
+                    {
+                      id: "be-auth-route",
+                      label: "authRoute.js",
+                      type: "file",
+                      path: "backend/routes/authRoute.js",
+                      description: "Declares register and login endpoints.",
+                      dependsOn: ["controllers/authController.js"]
+                    },
+                    {
+                      id: "be-auth-controller",
+                      label: "authController.js",
+                      type: "file",
+                      path: "backend/controllers/authController.js",
+                      description: "Creates users, verifies passwords, signs JWTs, and returns user/session payloads.",
+                      dependsOn: ["models/User.js", "utils/jwt.js"]
+                    }
+                  ]
+                },
+                {
+                  id: "be-user-domain",
+                  label: "User domain",
+                  type: "group",
+                  path: "backend/routes/userRoute.js + backend/controllers/userController.js",
+                  description: "Current-user profile, availability, and session-safe profile updates.",
+                  dependsOn: ["models/User.js", "middleware/authMiddleware.js"],
+                  children: [
+                    {
+                      id: "be-user-route",
+                      label: "userRoute.js",
+                      type: "file",
+                      path: "backend/routes/userRoute.js",
+                      description: "User self-service routes.",
+                      dependsOn: ["controllers/userController.js", "middleware/authMiddleware.js"]
+                    },
+                    {
+                      id: "be-user-controller",
+                      label: "userController.js",
+                      type: "file",
+                      path: "backend/controllers/userController.js",
+                      description: "Returns me, toggles availability, and updates profile/study-time fields.",
+                      dependsOn: ["models/User.js"]
+                    }
+                  ]
+                },
+                {
+                  id: "be-group-domain",
+                  label: "Group domain",
+                  type: "group",
+                  path: "backend/routes/groupRoute.js + backend/controllers/groupController.js",
+                  description: "Persistent group management plus group-owned next-session plans and session defaults.",
+                  dependsOn: ["models/Group.js", "models/User.js", "middleware/authMiddleware.js"],
+                  children: [
+                    {
+                  id: "be-group-route",
+                  label: "groupRoute.js",
+                  type: "file",
+                  path: "backend/routes/groupRoute.js",
+                  description: "Group read/update/delete plus next-session topic, time-vote, and finalization routes.",
+                  dependsOn: ["controllers/groupController.js", "middleware/authMiddleware.js"]
+                    },
+                    {
+                  id: "be-group-controller",
+                  label: "groupController.js",
+                  type: "file",
+                  path: "backend/controllers/groupController.js",
+                  description: "Loads user groups, renames groups, updates session settings, manages creator-owned next-session plans and time voting, clears stale vote windows on finalization, and deletes inactive groups.",
+                  dependsOn: ["models/Group.js", "models/User.js"]
+                    }
+                  ]
+                },
+                {
+                  id: "be-match-domain",
+                  label: "Match domain",
+                  type: "group",
+                  path: "backend/routes/matchRoute.js + backend/controllers/matchController.js",
+                  description: "Matchmaking lifecycle from available users to accept/reject and group creation.",
+                  dependsOn: ["models/Match.js", "models/User.js", "models/Group.js"],
+                  children: [
+                    {
+                      id: "be-match-route",
+                      label: "matchRoute.js",
+                      type: "file",
+                      path: "backend/routes/matchRoute.js",
+                      description: "Active-match, accept/reject, and admin-only run-matching endpoints.",
+                      dependsOn: ["controllers/matchController.js", "middleware/adminMiddleware.js"]
+                    },
+                    {
+                      id: "be-match-controller",
+                      label: "matchController.js",
+                      type: "file",
+                      path: "backend/controllers/matchController.js",
+                      description: "Runs matching logic and converts accepted matches into groups.",
+                      dependsOn: ["models/Match.js", "models/User.js", "models/Group.js", "utils/studyTime.js"]
+                    }
+                  ]
+                },
+                {
+                  id: "be-message-domain",
+                  label: "Message domain",
+                  type: "group",
+                  path: "backend/routes/messageRoute.js + backend/controllers/messageController.js",
+                  description: "Historical message retrieval for group chat.",
+                  dependsOn: ["models/Message.js", "middleware/authMiddleware.js"],
+                  children: [
+                    {
+                      id: "be-message-route",
+                      label: "messageRoute.js",
+                      type: "file",
+                      path: "backend/routes/messageRoute.js",
+                      description: "Routes for fetching group messages.",
+                      dependsOn: ["controllers/messageController.js"]
+                    },
+                    {
+                      id: "be-message-controller",
+                      label: "messageController.js",
+                      type: "file",
+                      path: "backend/controllers/messageController.js",
+                      description: "Returns chat history with populated sender details.",
+                      dependsOn: ["models/Message.js"]
+                    }
+                  ]
+                },
+                {
+                  id: "be-interest-domain",
+                  label: "Interest domain",
+                  type: "group",
+                  path: "backend/routes/interestRoute.js + backend/controllers/interestController.js",
+                  description: "Subject/interest catalog delivery.",
+                  dependsOn: ["models/Interest.js"],
+                  children: [
+                    {
+                      id: "be-interest-route",
+                      label: "interestRoute.js",
+                      type: "file",
+                      path: "backend/routes/interestRoute.js",
+                      description: "Interest listing endpoint.",
+                      dependsOn: ["controllers/interestController.js"]
+                    },
+                    {
+                      id: "be-interest-controller",
+                      label: "interestController.js",
+                      type: "file",
+                      path: "backend/controllers/interestController.js",
+                      description: "Returns the seeded interest catalog.",
+                      dependsOn: ["models/Interest.js"]
+                    }
+                  ]
+                },
+                {
+                  id: "be-admin-domain",
+                  label: "Admin domain",
+                  type: "group",
+                  path: "backend/routes/adminRoute.js + backend/controllers/adminController.js",
+                  description: "Cross-system observability, search, and admin-triggered orchestration.",
+                  dependsOn: ["models/User.js", "models/Group.js", "models/Match.js", "middleware/adminMiddleware.js"],
+                  children: [
+                    {
+                      id: "be-admin-route",
+                      label: "adminRoute.js",
+                      type: "file",
+                      path: "backend/routes/adminRoute.js",
+                      description: "Admin-only overview, search, users, groups, matches, and run-matching routes.",
+                      dependsOn: ["controllers/adminController.js", "middleware/adminMiddleware.js"]
+                    },
+                    {
+                      id: "be-admin-controller",
+                      label: "adminController.js",
+                      type: "file",
+                      path: "backend/controllers/adminController.js",
+                      description: "Builds admin dashboard metrics and module-level visibility, including online presence.",
+                      dependsOn: ["models/User.js", "models/Group.js", "models/Match.js"]
+                    }
+                  ]
+                },
+                {
+                  id: "be-session-domain",
+                  label: "Session domain",
+                  type: "group",
+                  path: "backend/routes/sessionRoute.js + backend/controllers/sessionController.js",
+                  description: "Core structured-study engine and the most stateful subsystem in the project.",
+                  dependsOn: ["models/StudySession.js", "models/Group.js", "models/User.js", "utils/openaiQuiz.js", "utils/materialImport.js"],
+                  children: [
+                    {
+                      id: "be-session-route",
+                      label: "sessionRoute.js",
+                      type: "file",
+                      path: "backend/routes/sessionRoute.js",
+                      description: "All live-session endpoints: lobby, teacher-ready, teacher-only material import/update, start/end, phase controls, reveal, quiz, whiteboard, break media, history, and end-state cleanup.",
+                      dependsOn: ["controllers/sessionController.js", "middleware/authMiddleware.js"]
+                    },
+                    {
+                      id: "be-session-controller",
+                      label: "sessionController.js",
+                      type: "file",
+                      path: "backend/controllers/sessionController.js",
+                      description: "Session state machine: assigned-teacher-first start rules, timers, auto-advance, quiz/reveal flow, streaks, dedicated whiteboard sync, session-audio permissions including lobby mic checks, break media, teacher readiness, and scheduler support.",
+                      dependsOn: ["models/StudySession.js", "models/Group.js", "models/User.js", "utils/openaiQuiz.js", "utils/materialImport.js", "utils/studyTime.js"]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              id: "backend-realtime",
+              label: "Realtime + Voice Signaling",
+              type: "domain",
+              path: "backend/middleware/socket.js",
+              description: "Socket.IO server plus WebRTC signaling rooms for collaborative session behavior.",
+              dependsOn: ["JWT auth", "Session controller", "Message model", "User model"],
+              usedBy: ["Frontend socket client", "Break audio hook", "Group chat hook"],
+              children: [
+                {
+                  id: "be-auth-middleware",
+                  label: "authMiddleware.js",
+                  type: "file",
+                  path: "backend/middleware/authMiddleware.js",
+                  description: "HTTP auth middleware that verifies JWTs and attaches the current user.",
+                  dependsOn: ["utils/jwt.js", "models/User.js"]
+                },
+                {
+                  id: "be-admin-middleware",
+                  label: "adminMiddleware.js",
+                  type: "file",
+                  path: "backend/middleware/adminMiddleware.js",
+                  description: "Role gate for admin-only HTTP routes.",
+                  dependsOn: ["models/User.js"]
+                },
+                {
+                  id: "be-socket",
+                  label: "socket.js",
+                  type: "file",
+                  path: "backend/middleware/socket.js",
+                  description: "Authenticates socket connections, joins users to group/session rooms, tracks app presence, emits dedicated whiteboard live-stroke and board-state events, relays messages, and carries permission-checked WebRTC signaling events including lobby audio access and room-join acknowledgement.",
+                  dependsOn: ["socket.io", "models/User.js", "models/Message.js", "controllers/sessionController.js", "utils/jwt.js"]
+                }
+              ]
+            },
+            {
+              id: "backend-models-utils",
+              label: "Persistence + Supporting Utilities",
+              type: "domain",
+              path: "backend/models, backend/utils",
+              description: "Persistent entities and helper modules used across HTTP, sockets, jobs, and automation.",
+              dependsOn: ["MongoDB", "Node services"],
+              usedBy: ["Controllers", "Socket middleware", "Jobs"],
+              children: [
+                {
+                  id: "be-model-user",
+                  label: "User.js",
+                  type: "file",
+                  path: "backend/models/User.js",
+                  description: "User identity, auth, interests, availability, presence, and streak model.",
+                  dependsOn: ["mongoose", "bcryptjs"]
+                },
+                {
+                  id: "be-model-group",
+                  label: "Group.js",
+                  type: "file",
+                  path: "backend/models/Group.js",
+                  description: "Persistent group model with members, streaks, session defaults, and creator-owned next-session plan plus time-vote state.",
+                  dependsOn: ["mongoose"]
+                },
+                {
+                  id: "be-model-session",
+                  label: "StudySession.js",
+                  type: "file",
+                  path: "backend/models/StudySession.js",
+                  description: "Structured-study session aggregate with live phases, participants, teacher readiness, teacher-owned current session materials, reveal state, quiz, whiteboard, break media, audio/reveal control fields, material withdrawal support, hard mute/revoke speaker state, quiz-generation fallback timeout, and recent-teacher rotation history used to avoid repeating the same teacher too often. Revoke is tracked separately from mute so the UI can require a fresh mic request and block board use until re-approval.",
+                  dependsOn: ["mongoose"]
+                },
+                {
+                  id: "be-model-match",
+                  label: "Match.js",
+                  type: "file",
+                  path: "backend/models/Match.js",
+                  description: "Temporary matching object used before permanent groups exist.",
+                  dependsOn: ["mongoose"]
+                },
+                {
+                  id: "be-model-message",
+                  label: "Message.js",
+                  type: "file",
+                  path: "backend/models/Message.js",
+                  description: "Persistent group chat message model.",
+                  dependsOn: ["mongoose"]
+                },
+                {
+                  id: "be-model-interest",
+                  label: "Interest.js",
+                  type: "file",
+                  path: "backend/models/Interest.js",
+                  description: "Interest/subject catalog model.",
+                  dependsOn: ["mongoose"]
+                },
+                {
+                  id: "be-util-jwt",
+                  label: "jwt.js",
+                  type: "file",
+                  path: "backend/utils/jwt.js",
+                  description: "Resolves JWT secret and standardizes auth-signing usage.",
+                  dependsOn: ["process.env"]
+                },
+                {
+                  id: "be-util-studytime",
+                  label: "studyTime.js",
+                  type: "file",
+                  path: "backend/utils/studyTime.js",
+                  description: "Defines and normalizes Morning/Afternoon/Evening/Night/Midnight scheduling windows.",
+                  dependsOn: []
+                },
+                {
+                  id: "be-util-material",
+                  label: "materialImport.js",
+                  type: "file",
+                  path: "backend/utils/materialImport.js",
+                  description: "Imports and extracts text-like/PDF teaching material so the current teacher can share it with the whole room and feed quiz generation, with a clearer failure path for scanned/image-only PDFs.",
+                  dependsOn: ["pdf parser"]
+                },
+                {
+                  id: "be-util-openai",
+                  label: "openaiQuiz.js",
+                  type: "file",
+                  path: "backend/utils/openaiQuiz.js",
+                  description: "Optional AI quiz generation from session material when an OpenAI key is configured.",
+                  dependsOn: ["OpenAI Responses API"]
+                },
+                {
+                  id: "be-util-mailer",
+                  label: "mailer.js",
+                  type: "file",
+                  path: "backend/utils/mailer.js",
+                  description: "Mailer helper module available for notification-style work.",
+                  dependsOn: []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          id: "runtime-integrations",
+          label: "Shared Runtime Integrations",
+          type: "system",
+          path: "cross-cutting",
+          description: "External services and runtime technologies that the platform depends on across frontend and backend.",
+          dependsOn: [],
+          usedBy: ["Entire project"],
+          children: [
+            {
+              id: "rt-db",
+              label: "MongoDB + Mongoose",
+              type: "domain",
+              path: "backend/models",
+              description: "Primary persistence layer for users, groups, matches, study sessions, messages, and interests.",
+              dependsOn: [],
+              usedBy: ["Controllers", "Socket middleware", "Jobs"]
+            },
+            {
+              id: "rt-socket",
+              label: "Socket.IO",
+              type: "domain",
+              path: "backend/middleware/socket.js + frontend/src/socket/socket.js",
+              description: "Realtime transport for presence, room membership, session state, dedicated whiteboard live-stroke plus board-state sync, chat events, and audio signaling with lobby mic checks and teacher-managed mic actions.",
+              dependsOn: [],
+              usedBy: ["Group chat", "Study sessions", "Voice signaling"]
+            },
+            {
+              id: "rt-webrtc",
+              label: "WebRTC",
+              type: "domain",
+              path: "frontend/src/hooks/useBreakAudio.js",
+                  description: "Peer-to-peer voice transport used during teaching, discussion, break, and reveal audio flows, with Socket.IO as signaling, room-join acknowledgement, permission layer, join/offer/answer debug tracing, and live speaking-level meters on the client. Local transmit now obeys teacher mute/revoke state instead of only the UI toggle.",
+              dependsOn: ["Socket.IO", "Browser media APIs"],
+              usedBy: ["Live session audio"]
+            },
+            {
+              id: "rt-openai",
+              label: "OpenAI Quiz Generation",
+              type: "domain",
+              path: "backend/utils/openaiQuiz.js",
+              description: "Optional AI path for generating better quizzes from uploaded or live teaching material.",
+              dependsOn: ["OPENAI_API_KEY"],
+              usedBy: ["sessionController.js"]
+            }
+          ]
+        }
+      ]
+    };
+
+    const svg = document.getElementById("map");
+    const detailsEl = document.getElementById("details");
+    const searchEl = document.getElementById("search");
+    const expandAllBtn = document.getElementById("expandAll");
+    const collapseAllBtn = document.getElementById("collapseAll");
+    const resetViewBtn = document.getElementById("resetView");
+    const legendFilterEls = Array.from(document.querySelectorAll("[data-legend-filter]"));
+
+    const X_STEP = 290;
+    const NODE_WIDTH = 230;
+    const NODE_HEIGHT = 68;
+    const Y_GAP = 18;
+    const MARGIN_X = 40;
+    const MARGIN_Y = 30;
+
+    let selectedNodeId = "root";
+    let searchTerm = "";
+    let selectedLegendFilter = "";
+
+    function walk(node, fn, depth = 0, parent = null) {
+      fn(node, depth, parent);
+      (node.children || []).forEach((child) => walk(child, fn, depth + 1, node));
+    }
+
+    walk(data, (node, depth) => {
+      node.depth = depth;
+      if (node.children?.length) {
+        node.collapsed = depth >= 2;
+      }
+    });
+    data.collapsed = false;
+    data.children.forEach((child) => { child.collapsed = false; });
+
+    function collectVisibleNodes(node, depth = 0, list = []) {
+      list.push(node);
+      if (!node.collapsed) {
+        (node.children || []).forEach((child) => collectVisibleNodes(child, depth + 1, list));
+      }
+      return list;
+    }
+
+    function computeLayout(node, depth = 0, cursor = { y: MARGIN_Y }) {
+      node.x = MARGIN_X + depth * X_STEP;
+      if (!node.collapsed && node.children?.length) {
+        const startY = cursor.y;
+        node.children.forEach((child) => computeLayout(child, depth + 1, cursor));
+        const first = node.children[0];
+        const last = node.children[node.children.length - 1];
+        node.y = (first.y + last.y) / 2;
+        if (node.children.length === 1) {
+          node.y = first.y;
+        }
+        if (node.y < startY) {
+          node.y = startY;
+        }
+      } else {
+        node.y = cursor.y;
+        cursor.y += NODE_HEIGHT + Y_GAP;
+      }
+    }
+
+    function getNodeClass(node) {
+      const classes = ["node", node.type === "file" ? "file" : "group"];
+      if (selectedNodeId === node.id) classes.push("active");
+      if (matchesSearch(node)) classes.push("match");
+      return classes.join(" ");
+    }
+
+    function matchesLegendFilter(node) {
+      if (!selectedLegendFilter) return true;
+      if (selectedLegendFilter === "domain") {
+        return node.type === "domain" || node.type === "group";
+      }
+      return node.type === selectedLegendFilter;
+    }
+
+    function refreshLegendFilterState() {
+      legendFilterEls.forEach((el) => {
+        el.classList.toggle("active", el.getAttribute("data-legend-filter") === selectedLegendFilter);
+      });
+    }
+
+    function matchesSearch(node) {
+      if (!searchTerm.trim()) return false;
+      const haystack = [
+        node.label,
+        node.path,
+        node.description,
+        ...(node.dependsOn || []),
+        ...(node.usedBy || [])
+      ].join(" ").toLowerCase();
+      return haystack.includes(searchTerm.toLowerCase());
+    }
+
+    function findNodeById(id) {
+      let found = null;
+      walk(data, (node) => {
+        if (node.id === id) found = node;
+      });
+      return found;
+    }
+
+    function ensureVisible(node) {
+      let current = node;
+      while (current) {
+        current.collapsed = false;
+        current = findParent(current.id);
+      }
+    }
+
+    function findParent(id) {
+      let parent = null;
+      walk(data, (node) => {
+        (node.children || []).forEach((child) => {
+          if (child.id === id) parent = node;
+        });
+      });
+      return parent;
+    }
+
+    function renderDetails(node) {
+      detailsEl.innerHTML = `
+        <h3 class="details-title">${node.label}</h3>
+        <div class="details-type">${node.type}</div>
+        <p>${node.description || "No description available."}</p>
+        <div class="chip-row">
+          ${node.dependsOn?.length ? `<div class="chip"><strong>Depends on</strong> ${node.dependsOn.length}</div>` : ""}
+          ${node.usedBy?.length ? `<div class="chip"><strong>Used by</strong> ${node.usedBy.length}</div>` : ""}
+          ${node.children?.length ? `<div class="chip"><strong>Children</strong> ${node.children.length}</div>` : ""}
+        </div>
+        ${node.path ? `<span class="path">${node.path}</span>` : ""}
+        ${node.dependsOn?.length ? `<ul>${node.dependsOn.map((item) => `<li>${item}</li>`).join("")}</ul>` : ""}
+        ${node.usedBy?.length ? `<ul>${node.usedBy.map((item) => `<li>${item}</li>`).join("")}</ul>` : ""}
+      `;
+    }
+
+    function draw() {
+      computeLayout(data);
+      const visible = collectVisibleNodes(data);
+      const maxX = Math.max(...visible.map((node) => node.x)) + NODE_WIDTH + 80;
+      const maxY = Math.max(...visible.map((node) => node.y)) + NODE_HEIGHT + 60;
+      svg.setAttribute("viewBox", `0 0 ${maxX} ${maxY}`);
+      svg.setAttribute("width", Math.max(2200, maxX));
+      svg.setAttribute("height", Math.max(1500, maxY));
+
+      const links = [];
+      visible.forEach((node) => {
+        if (!node.collapsed) {
+          (node.children || []).forEach((child) => {
+            const linkOpacity = selectedLegendFilter
+              ? (matchesLegendFilter(node) || matchesLegendFilter(child) ? 0.72 : 0.08)
+              : 1;
+            links.push(`
+              <path class="link" opacity="${linkOpacity}" d="M ${node.x + NODE_WIDTH} ${node.y + NODE_HEIGHT / 2}
+              C ${node.x + NODE_WIDTH + 50} ${node.y + NODE_HEIGHT / 2},
+                ${child.x - 50} ${child.y + NODE_HEIGHT / 2},
+                ${child.x} ${child.y + NODE_HEIGHT / 2}" />
+            `);
+          });
+        }
+      });
+
+      const nodes = visible.map((node) => {
+        const toggleX = node.x + NODE_WIDTH - 20;
+        const toggleY = node.y + 16;
+        const hasChildren = !!node.children?.length;
+        const badge = node.type === "root" ? "Platform" : node.type === "system" ? "System" : node.type === "domain" ? "Domain" : node.type === "group" ? "Module" : "File";
+        const dimmed = !matchesLegendFilter(node);
+        return `
+          <g class="${getNodeClass(node)}" data-id="${node.id}" opacity="${dimmed ? 0.22 : 1}">
+            <rect x="${node.x}" y="${node.y}" width="${NODE_WIDTH}" height="${NODE_HEIGHT}" />
+            <text class="meta" x="${node.x + 16}" y="${node.y + 20}">${badge}</text>
+            <text class="label" x="${node.x + 16}" y="${node.y + 43}">${escapeXml(shorten(node.label, 30))}</text>
+            ${hasChildren ? `
+              <circle cx="${toggleX}" cy="${toggleY}" r="11" fill="#263238" opacity="0.9" data-toggle="${node.id}" />
+              <text class="toggle" x="${toggleX - 3.5}" y="${toggleY + 3.5}">${node.collapsed ? "+" : "−"}</text>
+            ` : ""}
+          </g>
+        `;
+      }).join("");
+
+      svg.innerHTML = links.join("") + nodes;
+
+      svg.querySelectorAll("[data-id]").forEach((group) => {
+        group.addEventListener("click", (event) => {
+          if (event.target.hasAttribute("data-toggle")) return;
+          const node = findNodeById(group.getAttribute("data-id"));
+          selectedNodeId = node.id;
+          renderDetails(node);
+          draw();
+        });
+      });
+
+      svg.querySelectorAll("[data-toggle]").forEach((toggle) => {
+        toggle.addEventListener("click", (event) => {
+          event.stopPropagation();
+          const node = findNodeById(toggle.getAttribute("data-toggle"));
+          node.collapsed = !node.collapsed;
+          draw();
+        });
+      });
+    }
+
+    function shorten(text, max) {
+      return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+    }
+
+    function escapeXml(value) {
+      return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+    }
+
+    function expandAll(node) {
+      walk(node, (item) => { if (item.children?.length) item.collapsed = false; });
+    }
+
+    function collapseToSystems(node) {
+      walk(node, (item, depth) => {
+        if (!item.children?.length) return;
+        item.collapsed = depth >= 1;
+      });
+      node.collapsed = false;
+      (node.children || []).forEach((child) => { child.collapsed = false; });
+    }
+
+    function applySearch(term) {
+      searchTerm = term.trim();
+      if (!searchTerm) {
+        draw();
+        return;
+      }
+
+      let firstMatch = null;
+      walk(data, (node) => {
+        if (matchesSearch(node)) {
+          ensureVisible(node);
+          if (!firstMatch) firstMatch = node;
+        }
+      });
+
+      if (firstMatch) {
+        selectedNodeId = firstMatch.id;
+        renderDetails(firstMatch);
+      }
+
+      draw();
+    }
+
+    searchEl.addEventListener("input", (event) => applySearch(event.target.value));
+    legendFilterEls.forEach((el) => {
+      el.addEventListener("click", () => {
+        const filter = el.getAttribute("data-legend-filter");
+        selectedLegendFilter = selectedLegendFilter === filter ? "" : filter;
+        refreshLegendFilterState();
+        draw();
+      });
+    });
+    expandAllBtn.addEventListener("click", () => {
+      expandAll(data);
+      draw();
+    });
+    collapseAllBtn.addEventListener("click", () => {
+      collapseToSystems(data);
+      draw();
+    });
+    resetViewBtn.addEventListener("click", () => {
+      searchEl.value = "";
+      searchTerm = "";
+      selectedLegendFilter = "";
+      collapseToSystems(data);
+      selectedNodeId = "root";
+      refreshLegendFilterState();
+      renderDetails(data);
+      draw();
+    });
+
+    collapseToSystems(data);
+    refreshLegendFilterState();
+    renderDetails(data);
+    draw();
+  </script>
+</body>
+</html>

@@ -8,7 +8,7 @@ const toId = v => (v && v._id ? v._id : v);
 // check if id is equal(the same)
 const idEq = (a, b) => toId(a)?.toString() === toId(b)?.toString();
 
-const MAX_GROUP_SIZE = 10;
+const MAX_GROUP_SIZE = 6;
 const MIN_GROUP_SIZE = 3;
 const QUALIFYING_SCORE = 5;
 // calculate and score compactibilty between users
@@ -22,6 +22,93 @@ function calculateCompactibility(userA, userB) {
   if (userA.level && userB.level && userA.level === userB.level) score += 3;
   return { score, shared };
 }
+
+const buildScores = users => {
+  const scores = [];
+  for (let i = 0; i < users.length; i++) {
+    for (let j = i + 1; j < users.length; j++) {
+      const userA = users[i];
+      const userB = users[j];
+      const interestA = Array.isArray(userA.interest) ? userA.interest : [];
+      const interestB = Array.isArray(userB.interest) ? userB.interest : [];
+      const sharedInterests = interestA.filter(i => interestB.includes(i));
+      let score = 0;
+      if (userA.studyTime === userB.studyTime) score += 5;
+      score += sharedInterests.length * 2;
+      scores.push({ userA, userB, score, sharedInterests });
+    }
+  }
+  return scores;
+};
+
+const buildAdjacency = (users, scores, threshold) => {
+  const adjacency = new Map();
+  users.forEach(u => {
+    adjacency.set(u._id.toString(), new Set());
+  });
+  scores.forEach(s => {
+    if (s.score > threshold) {
+      const a = s.userA._id.toString();
+      const b = s.userB._id.toString();
+      adjacency.get(a)?.add(b);
+      adjacency.get(b)?.add(a);
+    }
+  });
+  return adjacency;
+};
+
+const getConnectedComponents = (users, adjacency) => {
+  const visited = new Set();
+  const components = [];
+  for (const user of users) {
+    const id = user._id.toString();
+    if (visited.has(id)) continue;
+    const stack = [id];
+    const componentIds = [];
+    visited.add(id);
+    while (stack.length) {
+      const current = stack.pop();
+      componentIds.push(current);
+      const neighbors = adjacency.get(current);
+      if (!neighbors) continue;
+      for (const neighbor of neighbors) {
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor);
+          stack.push(neighbor);
+        }
+      }
+    }
+    const componentUsers = users.filter(u =>
+      componentIds.includes(u._id.toString()),
+    );
+    components.push(componentUsers);
+  }
+  return components;
+};
+
+const splitIntoGroups = (component, adjacency) => {
+  const degree = user => adjacency.get(user._id.toString())?.size || 0;
+  const sorted = [...component].sort((a, b) => {
+    const diff = degree(b) - degree(a);
+    if (diff !== 0) return diff;
+    return a._id.toString().localeCompare(b._id.toString());
+  });
+  const groups = [];
+  for (let i = 0; i < sorted.length; i += MAX_GROUP_SIZE) {
+    groups.push(sorted.slice(i, i + MAX_GROUP_SIZE));
+  }
+  return groups;
+};
+
+const formatMatchName = bucketKey => {
+  const now = new Date();
+  const pad = n => String(n).padStart(2, "0");
+  const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(
+    now.getDate(),
+  )}`;
+  const time = `${pad(now.getHours())}-${pad(now.getMinutes())}`;
+  return `${bucketKey}_${date}_${time}`;
+};
 
 // system create match
 //  run the matching algorithm
@@ -38,106 +125,106 @@ export const runMatchingAlgorithm = async (req, res) => {
         { lastLeftGroupAt: { $lte: new Date(Date.now() - COOLDOWN_TIME) } },
       ],
     });
-    if (availableUsers.length < 3) {
+    if (availableUsers.length < MIN_GROUP_SIZE) {
       return res
         .status(400)
         .json({ message: "Not enough users to create a match." });
     }
 
-    // const groupedByStudyTime = {};
-    // availableUsers.forEach(u => {
-    //   if (!groupedByStudyTime[u.studyTime]) {
-    //     groupedByStudyTime[u.studyTime] = [];
-    //   }
-    //   groupedByStudyTime[u.studyTime].push(u);
-    // });
-
-    // for (const studyTime in groupedByStudyTime) {
-    //   const usersInSameTime = groupedByStudyTime[studyTime];
-    // }
-    const scores = [];
-
-    // check for same interest from users witih the same studuytime
-    for (let i = 0; i < availableUsers.length; i++) {
-      for (let j = i + 1; j < availableUsers.length; j++) {
-        const userA = availableUsers[i];
-        const userB = availableUsers[j];
-        // const { score, shared } = calculateCompactibility(userA, userB);
-
-        const interestA = Array.isArray(userA.interest) ? userA.interest : [];
-        const interestB = Array.isArray(userB.interest) ? userB.interest : [];
-        const sharedInterests = interestA.filter(i => interestB.includes(i));
-        // const sharedInterests = userA.interest.filter(interest =>
-        //   userB.interest.includes(interest),
-        // );
-        let score = 0;
-        if (userA.studyTime === userB.studyTime) score += 5;
-        score += sharedInterests.length * 2;
-        scores.push({ userA, userB, score, sharedInterests });
-      }
-    }
-    const qualifyingScores = scores.filter(s => s.score > QUALIFYING_SCORE);
-    scores.sort((a, b) => b.score - a.score);
-    if (scores.length === 0) {
-      return res.status(400).json({ message: "No compactable users founnd." });
-    }
-
-    const qualifiedUserIds = [
-      ...new Set(
-        qualifyingScores.flatMap(s => [
-          s.userA._id.toString(),
-          s.userB._id.toString(),
-        ]),
-      ),
-    ];
-    if (qualifiedUserIds.length < 3) {
-      return res
-        .status(400)
-        .json({ message: "Not enough compatible users to create a match" });
-    }
-    const finalUsers = availableUsers.filter(u =>
-      qualifiedUserIds.includes(u._id.toString()),
-    );
-
-    if (finalUsers.some(u => !u._id)) {
-      return res
-        .status(400)
-        .json({ message: "Invalid user detected during matching" });
-    }
-
-    console.log(
-      "FINAL USERS:",
-      finalUsers.map(u => ({ id: u?._id, interest: u?.interest })),
-    );
-    // create matchrequestwith those users
-    const matchRequest = await Match.create({
-      users: finalUsers.map(u => ({
-        user: u._id,
-        status: "pending",
-      })),
-      compactibiltyScores: scores.slice(0, 10).map(s => ({
-        users: [s.userA._id, s.userB._id],
-        score: s.score,
-        sharedInterests: s.sharedInterests,
-      })),
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), //24 hours expiry
-      isGroupCreated: false,
-      isActive: true,
+    const buckets = new Map();
+    availableUsers.forEach(u => {
+      const key = u.primaryInterest?.toLowerCase();
+      if (!key) return;
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key).push(u);
     });
+
+    const createdMatches = [];
     const io = getIO();
 
-    matchRequest.users.forEach(u => {
-      if (!u.user) return;
-      io.to(u.user.toString()).emit("match:created", {
-        matchId: matchRequest._id,
-      });
-    });
-    const populatedMatch = await Match.findById(matchRequest._id)
+    for (const [bucketKey, users] of buckets) {
+      if (users.length < MIN_GROUP_SIZE) continue;
+      console.log(
+        `MATCH BUCKET ${bucketKey}: ${users.length} users`,
+        users.map(u => u._id?.toString()),
+      );
+      const scores = buildScores(users);
+      scores.sort((a, b) => b.score - a.score);
+      if (scores.length === 0) continue;
+
+      const adjacency = buildAdjacency(users, scores, QUALIFYING_SCORE);
+      const components = getConnectedComponents(users, adjacency);
+      console.log(
+        `MATCH COMPONENTS ${bucketKey}: ${components.length}`,
+        components.map(c => c.length),
+      );
+
+      for (const component of components) {
+        if (component.length < MIN_GROUP_SIZE) continue;
+        const groups = splitIntoGroups(component, adjacency);
+        console.log(
+          `MATCH GROUPS ${bucketKey}: ${groups.length}`,
+          groups.map(g => g.length),
+        );
+        for (const groupUsers of groups) {
+          if (groupUsers.length < MIN_GROUP_SIZE) continue;
+          const groupIds = new Set(groupUsers.map(u => u._id.toString()));
+          const groupScores = scores.filter(
+            s =>
+              groupIds.has(s.userA._id.toString()) &&
+              groupIds.has(s.userB._id.toString()),
+          );
+          const matchName = formatMatchName(bucketKey);
+          const matchRequest = await Match.create({
+            name: matchName,
+            users: groupUsers.map(u => ({
+              user: u._id,
+              status: "pending",
+            })),
+            compactibiltyScores: groupScores.slice(0, 10).map(s => ({
+              users: [s.userA._id, s.userB._id],
+              score: s.score,
+              sharedInterests: s.sharedInterests,
+            })),
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            isGroupCreated: false,
+            isActive: true,
+          });
+          createdMatches.push(matchRequest);
+
+          const groupUserIds = groupUsers.map(u => u._id);
+          await Match.updateMany(
+            {
+              isActive: true,
+              _id: { $ne: matchRequest._id },
+              "users.user": { $in: groupUserIds },
+            },
+            { $set: { isActive: false } },
+          );
+
+          matchRequest.users.forEach(u => {
+            if (!u.user) return;
+            io.to(u.user.toString()).emit("match:created", {
+              matchId: matchRequest._id,
+            });
+          });
+        }
+      }
+    }
+
+    if (createdMatches.length === 0) {
+      return res.status(400).json({ message: "No compatible users found." });
+    }
+
+    const populatedMatches = await Match.find({
+      _id: { $in: createdMatches.map(m => m._id) },
+    })
       .populate("users.user", "email")
       .populate("compactibiltyScores.users", "email");
+
     res.status(201).json({
-      message: "match request created with scorer",
-      matchRequest: populatedMatch,
+      message: "match requests created",
+      matchRequests: populatedMatches,
     });
   } catch (err) {
     console.error("Error running match algorithm", err);
@@ -160,6 +247,7 @@ export const acceptMatch = async (req, res) => {
   try {
     const { matchId } = req.body;
     const userId = req.user._id;
+    const io = getIO();
     const match = await Match.findById(matchId);
     if (!match) {
       return res.status(404).json({ message: "Match request not found" });
@@ -244,12 +332,12 @@ export const acceptMatch = async (req, res) => {
       }
     }
 
+    let groupCreatedNow = false;
     if (acceptedUsers.length >= MIN_GROUP_SIZE && !match.isGroupCreated) {
+      const matchName = match.name || formatMatchName("group");
       group = await Group.create({
-        name: `Study Group on ${new Date()
-          .toISOString()
-          .slice(0, 16)
-          .replace("T", "")}`,
+        internalName: matchName,
+        name: matchName,
         topic: "Study",
         members: acceptedUsers,
         createBy: acceptedUsers[0],
@@ -258,6 +346,7 @@ export const acceptMatch = async (req, res) => {
       match.isGroupCreated = true;
       match.groupId = group._id;
       await match.save();
+      groupCreatedNow = true;
       //update user groupId
       await User.updateMany(
         { _id: { $in: acceptedUsers } },
@@ -271,6 +360,17 @@ export const acceptMatch = async (req, res) => {
     const freshGroup = match.groupId
       ? await Group.findById(match.groupId)
       : group;
+    if (groupCreatedNow && io) {
+      match.users.forEach(u => {
+        if (!u.user) return;
+        io.to(u.user.toString()).emit("group:created", {
+          matchId: match._id,
+          groupId: group?._id,
+          name: group?.name,
+        });
+      });
+    }
+
     res.status(200).json({
       message: freshGroup
         ? "group created/updated successfully"
@@ -365,26 +465,27 @@ export const getUserMatches = async (req, res) => {
 };
 
 // getting a users active match
-export const getMyActiveMatch = async (req, res) => {
+export const getMyActiveMatches = async (req, res) => {
   try {
     const userId = req.user._id;
     console.log("ACTIVE MATCH CHECK USER:", userId.toString());
 
-    const match = await Match.findOne({
+    const matches = await Match.find({
       "users.user": userId,
       isActive: true,
-    });
-    if (!match) {
-      return res.status(404).json({ message: "No Active MAtch fouund" });
-    }
-    await match.populate("users.user", "name email");
+    })
+      .sort({ createdAt: -1 })
+      .populate("users.user", "name email");
 
-    console.log("MATCH FOUND:", match?._id || null);
-    // const populatedMatch = await Match.findById(match?._id).populate(
-    //   "users.user",
-    //   "email",
-    // );
-    return res.json(match);
+    if (!matches || matches.length === 0) {
+      return res.status(404).json({ message: "No Active Match found" });
+    }
+
+    console.log(
+      "MATCHES FOUND:",
+      matches.map(m => m?._id?.toString()),
+    );
+    return res.json(matches);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch active Match" });
   }

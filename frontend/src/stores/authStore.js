@@ -1,11 +1,14 @@
 import { create } from "zustand";
 import api from "../api/axios";
 import { useSocketStore } from "./socketStore";
+import storage from "../utils/storage";
 
 export const useAuthStore = create(set => ({
   user: null,
-  token: localStorage.getItem("token"),
+  token: storage.getItem("token"),
   loading: false,
+  availabilityLoading: false,
+  profileLoading: false,
   error: null,
 
   login: async credentials => {
@@ -15,7 +18,7 @@ export const useAuthStore = create(set => ({
     });
     try {
       const res = await api.post("/auth/login", credentials);
-      localStorage.setItem("token", res.data.token);
+      storage.setItem("token", res.data.token);
       useSocketStore.getState().connect(res.data.token);
       set({
         token: res.data.token,
@@ -36,7 +39,7 @@ export const useAuthStore = create(set => ({
     });
     try {
       const res = await api.post("/auth/register", data);
-      localStorage.setItem("token", res.data.token);
+      storage.setItem("token", res.data.token);
       useSocketStore.getState().connect(res.data.token);
 
       set({
@@ -56,12 +59,45 @@ export const useAuthStore = create(set => ({
       const res = await api.get("/user/me");
       set({ user: res.data });
     } catch {
-      localStorage.removeItem("token");
+      storage.removeItem("token");
       set({ token: null, user: null });
     }
   },
+  toggleAvailability: async () => {
+    set({ availabilityLoading: true, error: null });
+    try {
+      const res = await api.post("/user/toggleAvailabilty");
+      set(state => ({
+        user: state.user
+          ? { ...state.user, isAvailable: res.data.isAvailable }
+          : state.user,
+        availabilityLoading: false,
+      }));
+      return res.data;
+    } catch (err) {
+      set({
+        error: err.response?.data?.message || "Failed to toggle availability",
+        availabilityLoading: false,
+      });
+      throw err;
+    }
+  },
+  updateProfile: async updates => {
+    set({ profileLoading: true, error: null });
+    try {
+      const res = await api.put("/user/update", updates);
+      set({ user: res.data, profileLoading: false });
+      return res.data;
+    } catch (err) {
+      set({
+        error: err.response?.data?.message || "Failed to update profile",
+        profileLoading: false,
+      });
+      throw err;
+    }
+  },
   logout: () => {
-    localStorage.removeItem("token");
+    storage.removeItem("token");
     useSocketStore.getState().disconnect();
     set({ user: null, token: null });
   },

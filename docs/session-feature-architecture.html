@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StuGrMat Session Feature Architecture</title>
+  <style>
+    :root {
+      --bg: #f5f2eb;
+      --paper: #fffdf8;
+      --ink: #263238;
+      --muted: #607d8b;
+      --line: #d8d3ca;
+      --sage: #a5c2b1;
+      --peach: #e0c0a5;
+      --rose: #c78a8c;
+      --shadow: 0 14px 28px rgba(38, 50, 56, 0.09);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(165, 194, 177, 0.23), transparent 30%),
+        radial-gradient(circle at top right, rgba(224, 192, 165, 0.18), transparent 26%),
+        linear-gradient(180deg, #f8f6f1 0%, #f1ede6 100%);
+      font-family: "Segoe UI", system-ui, sans-serif;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      padding: 24px 20px;
+      border-right: 1px solid var(--line);
+      background: rgba(255, 252, 247, 0.88);
+      backdrop-filter: blur(8px);
+      overflow-y: auto;
+      position: sticky;
+      top: 0;
+      max-height: 100vh;
+    }
+
+    .main {
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      min-width: 0;
+    }
+
+    .hero {
+      padding: 24px 28px 14px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(8px);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 2rem;
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    .lede {
+      margin: 10px 0 0;
+      color: var(--muted);
+      line-height: 1.55;
+      max-width: 900px;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 14px 28px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 253, 248, 0.9);
+    }
+
+    .search,
+    .button,
+    .select {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--paper);
+      color: var(--ink);
+      font: inherit;
+      box-shadow: var(--shadow);
+    }
+
+    .search {
+      flex: 1 1 320px;
+      padding: 12px 16px;
+    }
+
+    .button,
+    .select {
+      padding: 11px 14px;
+      cursor: pointer;
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+    }
+
+    .button.active {
+      background: var(--ink);
+      color: var(--paper);
+      border-color: var(--ink);
+    }
+
+    .button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .canvas-wrap {
+      padding: 18px 20px 24px;
+      overflow: auto;
+    }
+
+    svg {
+      display: block;
+      min-width: 1700px;
+    }
+
+    .lane-label {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      fill: var(--muted);
+    }
+
+    .lane-band {
+      fill: rgba(255,255,255,0.35);
+      stroke: rgba(216, 211, 202, 0.8);
+      stroke-width: 1;
+      rx: 18;
+      ry: 18;
+    }
+
+    .node rect {
+      fill: var(--paper);
+      stroke: var(--line);
+      stroke-width: 1.25;
+      rx: 16;
+      ry: 16;
+      filter: drop-shadow(0 10px 18px rgba(38, 50, 56, 0.08));
+    }
+
+    .node.feature rect { fill: #fffdf8; }
+    .node.backend rect { fill: #f6fbf7; }
+    .node.frontend rect { fill: #fffaf5; }
+    .node.realtime rect { fill: #faf7fd; }
+    .node.model rect { fill: #f7f9fb; }
+    .node.utility rect { fill: #fcf8f8; }
+    .node.active rect { stroke: var(--ink); stroke-width: 2; }
+    .node.match rect { stroke: #c67b52; stroke-width: 2; }
+
+    .node text.title {
+      font-size: 14px;
+      font-weight: 700;
+      fill: var(--ink);
+    }
+
+    .node text.kind {
+      font-size: 11px;
+      fill: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .edge {
+      fill: none;
+      stroke: rgba(96, 125, 139, 0.42);
+      stroke-width: 2;
+      marker-end: url(#arrow);
+    }
+
+    .edge.highlight {
+      stroke: rgba(199, 138, 140, 0.82);
+      stroke-width: 2.5;
+    }
+
+    .panel {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+    }
+
+    .panel details {
+      margin: -2px;
+    }
+
+    .panel summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 0.92rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .panel summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .summary-caret {
+      font-size: 1rem;
+      color: var(--ink);
+      transition: transform 150ms ease;
+    }
+
+    details[open] .summary-caret {
+      transform: rotate(90deg);
+    }
+
+    .panel h2 {
+      margin: 0 0 12px;
+      font-size: 0.92rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .detail-title {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 1.4rem;
+      margin: 0 0 6px;
+    }
+
+    .detail-type {
+      color: var(--muted);
+      font-size: 0.84rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 14px;
+    }
+
+    .panel p,
+    .panel li {
+      line-height: 1.55;
+      margin: 0;
+    }
+
+    .panel ul {
+      margin: 10px 0 0;
+      padding-left: 18px;
+    }
+
+    .list-block {
+      margin-top: 14px;
+    }
+
+    .list-title {
+      margin: 0 0 6px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .chip {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 0.84rem;
+      background: #fff;
+    }
+
+    .path {
+      display: block;
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #f7f3ec;
+      border: 1px dashed var(--line);
+      color: var(--muted);
+      font-family: Consolas, monospace;
+      font-size: 0.82rem;
+      word-break: break-word;
+    }
+
+    .legend-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    .feature-dot { background: var(--sage); }
+    .backend-dot { background: var(--peach); }
+    .frontend-dot { background: var(--rose); }
+    .realtime-dot { background: #9f96c7; }
+    .model-dot { background: #97b5c8; }
+    .utility-dot { background: #d8a3a3; }
+
+    .legend-stack {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .legend-group {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 12px;
+      background: rgba(255,255,255,0.72);
+    }
+
+    .legend-group h3 {
+      margin: 0 0 8px;
+      font-size: 0.88rem;
+      color: var(--ink);
+      letter-spacing: 0.03em;
+    }
+
+    .legend-example {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .legend-swatch {
+      width: 34px;
+      height: 16px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #fff;
+      flex: 0 0 auto;
+    }
+
+    .legend-swatch.feature { background: #edf6f0; }
+    .legend-swatch.backend { background: #f9efe4; }
+    .legend-swatch.model { background: #eef4f8; }
+    .legend-swatch.realtime { background: #f2effa; }
+    .legend-swatch.frontend { background: #fff1f0; }
+    .legend-swatch.utility { background: #fbefef; }
+
+    .legend-group p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.92rem;
+    }
+
+    .legend-filter-grid {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .legend-filter {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px;
+      background: rgba(255,255,255,0.78);
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    .legend-filter:hover {
+      transform: translateY(-1px);
+      border-color: var(--sage);
+    }
+
+    .legend-filter.active {
+      border-color: var(--ink);
+      background: #fffaf0;
+    }
+
+    .legend-filter-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .legend-filter p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.92rem;
+    }
+
+    .legend-hint {
+      margin-top: 14px;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.92rem;
+    }
+
+    @media (max-width: 1100px) {
+      .shell { grid-template-columns: 1fr; }
+      .sidebar {
+        order: 1;
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+        position: static;
+        max-height: none;
+      }
+
+      .main {
+        order: 2;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <section class="panel">
+        <h2>Selected Node</h2>
+        <div id="details"></div>
+      </section>
+
+      <section class="panel">
+        <details open>
+          <summary>
+            <span>Reading Guide</span>
+            <span class="summary-caret">›</span>
+          </summary>
+          <div class="legend-filter-grid">
+            <div class="legend-filter" data-legend-kind="feature">
+              <div class="legend-filter-title"><span class="legend-swatch feature"></span>Feature capability</div>
+              <p>Use this to isolate the business-level session capabilities like next-session planning, the phase engine, quiz ranking, or whiteboard.</p>
+            </div>
+            <div class="legend-filter" data-legend-kind="backend">
+              <div class="legend-filter-title"><span class="legend-swatch backend"></span>Backend control layer</div>
+              <p>Highlights the server-side files that own workflow and state transitions.</p>
+            </div>
+            <div class="legend-filter" data-legend-kind="model">
+              <div class="legend-filter-title"><span class="legend-swatch model"></span>Persistence shape</div>
+              <p>Shows the data models that actually store session state and related entities.</p>
+            </div>
+            <div class="legend-filter" data-legend-kind="realtime">
+              <div class="legend-filter-title"><span class="legend-swatch realtime"></span>Realtime / signaling</div>
+              <p>Highlights live transport nodes like socket rooms, sync channels, and voice signaling.</p>
+            </div>
+            <div class="legend-filter" data-legend-kind="frontend">
+              <div class="legend-filter-title"><span class="legend-swatch frontend"></span>Frontend state / UI</div>
+              <p>Shows the client-side stores, hooks, and components that users interact with.</p>
+            </div>
+            <div class="legend-filter" data-legend-kind="utility">
+              <div class="legend-filter-title"><span class="legend-swatch utility"></span>Support utility</div>
+              <p>Highlights helpers like material import, scheduling windows, and AI quiz generation.</p>
+            </div>
+          </div>
+          <p class="legend-hint">Click any legend card to highlight that layer across the session map. Click it again or reset the view to clear the filter. Teacher material belongs to the current live session only, while the next-session plan stays focused on topic and timing. Audio now shows live speaking meters, and teacher selection looks back across recent sessions so the same teacher is not repeated too often.</p>
+          <div class="legend-stack">
+            <div class="legend-group">
+              <h3>Start here</h3>
+              <div class="legend-example">
+                <span class="legend-swatch feature"></span>
+                <strong>Feature node</strong>
+              </div>
+              <p>This is the capability you care about first, like `Phase Engine`, `Quiz + Ranking`, or `Whiteboard + Permissions`.</p>
+            </div>
+            <div class="legend-group">
+              <h3>Then follow the implementation path</h3>
+              <div class="legend-example">
+                <span class="legend-swatch backend"></span>
+                <strong>Backend control</strong>
+              </div>
+              <div class="legend-example">
+                <span class="legend-swatch model"></span>
+                <strong>Persistence shape</strong>
+              </div>
+              <div class="legend-example">
+                <span class="legend-swatch realtime"></span>
+                <strong>Realtime / signaling</strong>
+              </div>
+              <div class="legend-example">
+                <span class="legend-swatch frontend"></span>
+                <strong>Frontend state / UI</strong>
+              </div>
+              <div class="legend-example">
+                <span class="legend-swatch utility"></span>
+                <strong>Support utility</strong>
+              </div>
+              <p>These colors show where that feature is implemented across the stack, not just where it is displayed.</p>
+            </div>
+            <div class="legend-group">
+              <h3>How to read focused mode</h3>
+              <p>When you click a feature node, the map is supposed to narrow to that feature’s implementation path so you can trace it step by step instead of reading the whole subsystem at once.</p>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <section class="panel">
+        <h2>How To Read It</h2>
+        <p>This map starts from session features, then shows what backend, models, realtime channels, frontend state, and UI pieces make each feature work. Search by capability like <code>quiz</code>, <code>lobby</code>, <code>teacher</code>, <code>whiteboard</code>, or <code>streak</code>.</p>
+      </section>
+    </aside>
+
+    <main class="main">
+      <header class="hero">
+        <h1>Study Session Feature Architecture</h1>
+        <p class="lede">
+          This is the session subsystem broken down by capability first, not folder first. Each feature node shows the implementation layers it touches so you can quickly see what to debug, extend, or redesign.
+        </p>
+      </header>
+
+      <div class="toolbar">
+        <input id="search" class="search" type="search" placeholder="Search session feature, file, dependency, or flow..." />
+        <select id="featureJump" class="select">
+          <option value="">Jump to feature...</option>
+        </select>
+        <button id="showAll" class="button">Show all links</button>
+        <button id="focusFeature" class="button">Focus selected feature</button>
+        <button id="reset" class="button">Reset view</button>
+      </div>
+
+      <div class="canvas-wrap">
+        <svg id="map" width="2100" height="1600" aria-label="Session feature architecture diagram">
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(96,125,139,0.52)"></path>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const lanes = [
+      { key: "feature", label: "Session Features", y: 70, color: "feature" },
+      { key: "backend", label: "Backend Control Layer", y: 330, color: "backend" },
+      { key: "model", label: "Persistence + Session State", y: 590, color: "model" },
+      { key: "realtime", label: "Realtime / Signaling", y: 850, color: "realtime" },
+      { key: "frontend", label: "Frontend Stores + UI", y: 1110, color: "frontend" },
+      { key: "utility", label: "Supporting Utilities", y: 1370, color: "utility" }
+    ];
+
+    const nodes = [
+      { id: "feature-lobby", lane: "feature", x: 60, title: "Lobby Creation", kind: "feature", path: "Session feature", desc: "Creates the pre-session staging state where creator, teacher, and members gather, test mic permissions, and wait for the assigned teacher to mark ready; if the creator is away after the agreed time, the assigned teacher can still open the lobby.", deps: ["Teacher assignment", "Planning", "Time voting"], usedBy: ["Creators", "Group members"] },
+      { id: "feature-teacher", lane: "feature", x: 320, title: "Teacher Assignment", kind: "feature", path: "Session feature", desc: "Controls who teaches now and who is chosen for the next session, including first-session creator behavior, reveal logic, and a recent-session fairness lookback so the same teacher is not repeated too often.", deps: ["Presence", "Next session planning"], usedBy: ["Creator", "Teacher", "Members"] },
+      { id: "feature-phases", lane: "feature", x: 580, title: "Phase Engine", kind: "feature", path: "Session feature", desc: "Runs the live phase state machine: teaching, discussion, break, quiz, reveal, then session end.", deps: ["Timers", "Permissions", "Realtime state"], usedBy: ["Entire session"] },
+      { id: "feature-planning", lane: "feature", x: 840, title: "Next Session Planning", kind: "feature", path: "Session feature", desc: "Keeps next-session topic planning outside the live session while members vote only on time, then hides the poll once the time is finalized and pins the result at the top of the group.", deps: ["Vote window", "Teacher reveal", "Group nextSessionPlan"], usedBy: ["Creator", "Members"] },
+      { id: "feature-quiz", lane: "feature", x: 1100, title: "Quiz + Ranking", kind: "feature", path: "Session feature", desc: "Generates quizzes from current live-session material or fallback content, uses a timeout-backed fallback when AI generation is slow, scores submissions, ranks members by quiz score, and collapses the heavy session view once quiz mode starts.", deps: ["Material import", "AI path", "Planning data"], usedBy: ["Participants"] },
+      { id: "feature-whiteboard", lane: "feature", x: 1360, title: "Whiteboard + Permissions", kind: "feature", path: "Session feature", desc: "Shared session board with text and strokes, now synced over a dedicated whiteboard transport with teacher-wide undo/clear, student-only undo/clear for their own strokes, explicit revoked-state blocking that disables board access until a fresh mic request is re-approved, and cleaner session-only persistence.", deps: ["Socket sync", "Session participants"], usedBy: ["Teacher", "Approved speakers", "Discussion participants"] },
+      { id: "feature-break", lane: "feature", x: 1620, title: "Break Lounge + Voice", kind: "feature", path: "Session feature", desc: "Break-mode media queue plus phase-aware WebRTC room audio that now supports lobby mic checks, teacher-managed mic permission, join acknowledgements, safer peer negotiation, visible audio-debug tracing, live speaking meters, reaction chips, floating reaction bubbles, room volume control, synchronized room music playback from direct URLs or built-in /music assets, a themed ambient room with activity feed, and a stable joined state until the user leaves or the session ends. Teacher revoke now creates a separate revoked state that hard-mutes the target speaker, clears their speaking approval, blocks whiteboard use, and forces a fresh request-and-approve cycle before they can speak again.", deps: ["Realtime signaling", "Break media state"], usedBy: ["Teacher", "Members"] },
+      { id: "feature-streaks", lane: "feature", x: 1880, title: "Streaks + History", kind: "feature", path: "Session feature", desc: "Applies daily credit to users/groups, records session outcomes, and preserves session history and summaries.", deps: ["End session flow", "Meaningful participation"], usedBy: ["Dashboard", "Group display"] },
+
+      { id: "be-session-controller", lane: "backend", x: 180, title: "sessionController.js", kind: "backend", path: "backend/controllers/sessionController.js", desc: "Main session orchestration engine for lobby, teaching flow, reveal, quiz, whiteboard, break media, streaks, teacher selection, and ended-session cleanup.", deps: ["StudySession", "Group", "User", "OpenAI quiz", "Material import"], usedBy: ["sessionRoute.js", "socket.js", "auto-start scheduler"] },
+      { id: "be-session-route", lane: "backend", x: 600, title: "sessionRoute.js", kind: "backend", path: "backend/routes/sessionRoute.js", desc: "REST surface for live session actions: create lobby, teacher ready, teacher-only materials, start, reveal teacher, end, advance, submit quiz, update whiteboard, and break media.", deps: ["authMiddleware.js", "sessionController.js"], usedBy: ["sessionStore.js"] },
+      { id: "be-group-controller", lane: "backend", x: 1020, title: "groupController.js", kind: "backend", path: "backend/controllers/groupController.js", desc: "Owns persistent group settings plus creator-managed next-session topics and member time voting, including vote-window reset on finalization.", deps: ["Group", "User"], usedBy: ["groupRoute.js", "groupStore.js"] },
+      { id: "be-socket", lane: "backend", x: 1440, title: "socket.js", kind: "realtime", path: "backend/middleware/socket.js", desc: "Realtime room joining, presence updates, phase-aware voice access checks, dedicated whiteboard broadcast, chat sends, and WebRTC signaling relay.", deps: ["sessionController.js", "User", "Message", "JWT"], usedBy: ["socket client", "useGroupChat", "useBreakAudio"] },
+      { id: "be-auth", lane: "backend", x: 1860, title: "authMiddleware.js", kind: "backend", path: "backend/middleware/authMiddleware.js", desc: "HTTP auth gate for all protected session routes.", deps: ["User", "jwt.js"], usedBy: ["sessionRoute.js", "groupRoute.js"] },
+
+      { id: "model-session", lane: "model", x: 210, title: "StudySession.js", kind: "model", path: "backend/models/StudySession.js", desc: "Central session aggregate: status, live phases, teacher fields, participants, quiz, whiteboard, break media, and summaries.", deps: ["mongoose"], usedBy: ["sessionController.js", "socket.js"] },
+      { id: "model-group", lane: "model", x: 710, title: "Group.js", kind: "model", path: "backend/models/Group.js", desc: "Persistent group configuration with session defaults, streaks, creator, and nextSessionPlan data.", deps: ["mongoose"], usedBy: ["groupController.js", "sessionController.js", "matchController.js"] },
+      { id: "model-user", lane: "model", x: 1210, title: "User.js", kind: "model", path: "backend/models/User.js", desc: "User profile, role, availability, app presence, streak fields, and study-time matching profile.", deps: ["mongoose", "bcryptjs"], usedBy: ["authController.js", "sessionController.js", "socket.js", "groupController.js"] },
+      { id: "model-message", lane: "model", x: 1710, title: "Message.js", kind: "model", path: "backend/models/Message.js", desc: "Persistent group chat message history used alongside live socket messages.", deps: ["mongoose"], usedBy: ["messageController.js", "socket.js"] },
+
+      { id: "rt-session-room", lane: "realtime", x: 260, title: "Session Room Sync", kind: "realtime", path: "Socket room", desc: "Session state broadcast channel used for phase changes, teacher-ready updates, reveal events, and immediate end-session teacher persistence.", deps: ["socket.js", "sessionController.js"], usedBy: ["sessionStore.js", "StudySessionPanel.jsx"] },
+      { id: "rt-group-chat", lane: "realtime", x: 760, title: "Group Chat Room", kind: "realtime", path: "Socket room", desc: "Room used for phase-aware chat messages and message-driven participation tracking.", deps: ["socket.js", "Message.js"], usedBy: ["useGroupChat.js", "GroupChat.jsx"] },
+      { id: "rt-whiteboard", lane: "realtime", x: 1260, title: "Whiteboard Sync", kind: "realtime", path: "Socket event stream", desc: "Realtime whiteboard stream split between lightweight live stroke previews and persisted board snapshots for content, undo, and clear behavior.", deps: ["socket.js", "StudySession.js"], usedBy: ["StudySessionPanel.jsx"] },
+      { id: "rt-voice", lane: "realtime", x: 1760, title: "Voice Signaling", kind: "realtime", path: "Socket signaling room", desc: "WebRTC signaling path with one-sided offer initiation, ICE exchange, join/leave, and peer discovery.", deps: ["socket.js", "Browser RTCPeerConnection"], usedBy: ["useBreakAudio.js"] },
+
+      { id: "fe-session-store", lane: "frontend", x: 150, title: "sessionStore.js", kind: "frontend", path: "frontend/src/stores/sessionStore.js", desc: "Client-side source for REST session actions and currentSession/sessionHistory state.", deps: ["axios.js", "sessionRoute.js"], usedBy: ["StudySessionPanel.jsx", "GroupChat.jsx"] },
+      { id: "fe-group-store", lane: "frontend", x: 560, title: "groupStore.js", kind: "frontend", path: "frontend/src/stores/groupStore.js", desc: "Owns groups, active group, planned-session updates, and persistent session settings.", deps: ["axios.js", "groupController.js"], usedBy: ["GroupList.jsx", "GroupDetails.jsx", "StudySessionPanel.jsx"] },
+      { id: "fe-session-panel", lane: "frontend", x: 970, title: "StudySessionPanel.jsx", kind: "frontend", path: "frontend/src/components/groups/StudySessionPanel.jsx", desc: "Main session UI surface for lobby, teacher readiness, session audio with speaker meters, teacher-only material editing with shared material visibility, live-stroke whiteboard, quiz ranking, reveal, and a richer break lounge with theme cards, room activity, floating reaction bubbles, local room-volume control, synchronized room music playback from direct URLs or built-in /music assets, and visible action feedback.", deps: ["sessionStore.js", "groupStore.js", "socket.js", "useBreakAudio.js"], usedBy: ["GroupDetails.jsx"] },
+      { id: "fe-group-chat", lane: "frontend", x: 1380, title: "GroupChat.jsx", kind: "frontend", path: "frontend/src/components/chat/GroupChat.jsx", desc: "Live chat panel that reflects session phase restrictions and speaker/mic permissions.", deps: ["useGroupChat.js", "sessionStore.js"], usedBy: ["GroupDetails.jsx"] },
+      { id: "fe-break-audio", lane: "frontend", x: 1790, title: "useBreakAudio.js", kind: "frontend", path: "frontend/src/hooks/useBreakAudio.js", desc: "WebRTC media/control hook used by the session panel for phase-aware room audio participation, candidate buffering, peer playback, audio debug events, secure-context checks on mobile, optional TURN relay support, and error handling while keeping the voice room joined until an explicit leave or session end.", deps: ["socket.js", "media devices"], usedBy: ["StudySessionPanel.jsx"] },
+
+      { id: "util-material", lane: "utility", x: 280, title: "materialImport.js", kind: "utility", path: "backend/utils/materialImport.js", desc: "Imports text or extracts PDF material so the current teacher can attach real teaching content for the session and quiz.", deps: ["pdf parser"], usedBy: ["sessionController.js"] },
+      { id: "util-openai", lane: "utility", x: 800, title: "openaiQuiz.js", kind: "utility", path: "backend/utils/openaiQuiz.js", desc: "Optional AI path for generating better quiz questions from live session material.", deps: ["OPENAI_API_KEY"], usedBy: ["sessionController.js"] },
+      { id: "util-studytime", lane: "utility", x: 1320, title: "studyTime.js", kind: "utility", path: "backend/utils/studyTime.js", desc: "Normalizes study windows and candidate time slots used during scheduling and vote options.", deps: [], usedBy: ["matchController.js", "sessionController.js"] },
+      { id: "util-app-socket", lane: "utility", x: 1840, title: "frontend socket.js", kind: "utility", path: "frontend/src/socket/socket.js", desc: "Shared client socket singleton and global listeners that keep match/group/session state fresh, using same-origin API/socket paths so the frontend can also be served from the backend for tunnel/mobile access.", deps: ["socket.io-client"], usedBy: ["socketStore.js", "useGroupChat.js", "useBreakAudio.js", "StudySessionPanel.jsx"] }
+    ];
+
+    const edges = [
+      ["feature-lobby", "be-session-controller"], ["feature-lobby", "be-session-route"], ["feature-lobby", "model-session"], ["feature-lobby", "fe-session-store"], ["feature-lobby", "fe-session-panel"],
+      ["feature-teacher", "be-session-controller"], ["feature-teacher", "model-session"], ["feature-teacher", "model-group"], ["feature-teacher", "rt-session-room"], ["feature-teacher", "fe-session-panel"],
+      ["feature-phases", "be-session-controller"], ["feature-phases", "model-session"], ["feature-phases", "rt-session-room"], ["feature-phases", "fe-session-store"], ["feature-phases", "fe-session-panel"], ["feature-phases", "fe-group-chat"],
+      ["feature-planning", "be-session-controller"], ["feature-planning", "be-group-controller"], ["feature-planning", "model-group"], ["feature-planning", "model-session"], ["feature-planning", "fe-group-store"], ["feature-planning", "fe-session-panel"], ["feature-planning", "util-studytime"],
+      ["feature-quiz", "be-session-controller"], ["feature-quiz", "model-session"], ["feature-quiz", "fe-session-store"], ["feature-quiz", "fe-session-panel"], ["feature-quiz", "util-material"], ["feature-quiz", "util-openai"],
+      ["feature-whiteboard", "be-session-controller"], ["feature-whiteboard", "be-socket"], ["feature-whiteboard", "model-session"], ["feature-whiteboard", "rt-whiteboard"], ["feature-whiteboard", "fe-session-panel"], ["feature-whiteboard", "fe-group-chat"],
+      ["feature-break", "be-session-controller"], ["feature-break", "model-session"], ["feature-break", "rt-voice"], ["feature-break", "fe-break-audio"], ["feature-break", "fe-session-panel"], ["feature-break", "be-socket"],
+      ["feature-streaks", "be-session-controller"], ["feature-streaks", "model-user"], ["feature-streaks", "model-group"], ["feature-streaks", "fe-group-store"], ["feature-streaks", "fe-session-panel"],
+
+      ["be-session-controller", "model-session"], ["be-session-controller", "model-group"], ["be-session-controller", "model-user"], ["be-session-controller", "util-material"], ["be-session-controller", "util-openai"], ["be-session-controller", "util-studytime"], ["be-session-controller", "be-socket"],
+      ["be-session-route", "be-session-controller"], ["be-group-controller", "model-group"], ["be-group-controller", "model-session"], ["be-group-controller", "model-user"],
+      ["be-socket", "rt-session-room"], ["be-socket", "rt-group-chat"], ["be-socket", "rt-whiteboard"], ["be-socket", "rt-voice"], ["be-socket", "model-message"], ["be-socket", "model-user"], ["be-socket", "be-session-controller"],
+
+      ["rt-session-room", "fe-session-panel"], ["rt-session-room", "fe-session-store"], ["rt-group-chat", "fe-group-chat"], ["rt-group-chat", "model-message"], ["rt-whiteboard", "fe-session-panel"], ["rt-voice", "fe-break-audio"],
+      ["fe-session-store", "be-session-route"], ["fe-group-store", "be-group-controller"], ["fe-session-panel", "fe-session-store"], ["fe-session-panel", "fe-group-store"], ["fe-session-panel", "fe-break-audio"], ["fe-session-panel", "util-app-socket"], ["fe-group-chat", "util-app-socket"], ["fe-break-audio", "util-app-socket"]
+    ];
+
+    const svg = document.getElementById("map");
+    const canvasWrap = document.querySelector(".canvas-wrap");
+    const detailsEl = document.getElementById("details");
+    const searchEl = document.getElementById("search");
+    const featureJumpEl = document.getElementById("featureJump");
+    const showAllBtn = document.getElementById("showAll");
+    const focusFeatureBtn = document.getElementById("focusFeature");
+    const resetBtn = document.getElementById("reset");
+    const legendFilterEls = Array.from(document.querySelectorAll("[data-legend-kind]"));
+
+    let selectedId = "feature-phases";
+    let searchTerm = "";
+    let showAllEdges = true;
+    let selectedLegendKind = "";
+
+    nodes.forEach((node) => {
+      if (node.kind === "feature") {
+        const option = document.createElement("option");
+        option.value = node.id;
+        option.textContent = node.title;
+        featureJumpEl.appendChild(option);
+      }
+    });
+
+    function byId(id) {
+      return nodes.find((node) => node.id === id);
+    }
+
+    function matchesSearch(node) {
+      if (!searchTerm.trim()) return false;
+      const haystack = [node.title, node.kind, node.path, node.desc, ...(node.deps || []), ...(node.usedBy || [])].join(" ").toLowerCase();
+      return haystack.includes(searchTerm.toLowerCase());
+    }
+
+    function matchesLegendKind(node) {
+      if (!selectedLegendKind) return true;
+      return node.kind === selectedLegendKind;
+    }
+
+    function refreshLegendFilterState() {
+      legendFilterEls.forEach((el) => {
+        el.classList.toggle("active", el.getAttribute("data-legend-kind") === selectedLegendKind);
+      });
+    }
+
+    function relatedNodeIds(rootId) {
+      const related = new Set([rootId]);
+      const queue = [rootId];
+
+      while (queue.length) {
+        const current = queue.shift();
+        edges.forEach(([from, to]) => {
+          if (from === current && !related.has(to)) {
+            related.add(to);
+            queue.push(to);
+          }
+        });
+      }
+
+      return related;
+    }
+
+    function renderDetails(node) {
+      const dependsMarkup = node.deps?.length
+        ? `
+          <div class="list-block">
+            <div class="list-title">Depends On</div>
+            <ul>${node.deps.map((item) => `<li>${item}</li>`).join("")}</ul>
+          </div>
+        `
+        : "";
+      const usedByMarkup = node.usedBy?.length
+        ? `
+          <div class="list-block">
+            <div class="list-title">Used By</div>
+            <ul>${node.usedBy.map((item) => `<li>${item}</li>`).join("")}</ul>
+          </div>
+        `
+        : "";
+
+      detailsEl.innerHTML = `
+        <div class="detail-title">${node.title}</div>
+        <div class="detail-type">${node.kind}</div>
+        <p>${node.desc}</p>
+        <div class="chips">
+          ${node.deps?.length ? `<div class="chip">Depends on ${node.deps.length}</div>` : ""}
+          ${node.usedBy?.length ? `<div class="chip">Used by ${node.usedBy.length}</div>` : ""}
+        </div>
+        ${node.path ? `<span class="path">${node.path}</span>` : ""}
+        ${dependsMarkup}
+        ${usedByMarkup}
+      `;
+    }
+
+    function escapeXml(value) {
+      return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&apos;");
+    }
+
+    function shorten(text, max = 28) {
+      return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+    }
+
+    function safeShorten(text, max = 28) {
+      return text.length > max ? `${text.slice(0, max - 1)}...` : text;
+    }
+
+    function scrollNodeIntoView(node) {
+      if (!node || !canvasWrap) return;
+      const nodeWidth = 220;
+      const nodeHeight = 78;
+      const targetLeft = Math.max(0, node.x - canvasWrap.clientWidth / 2 + nodeWidth / 2);
+      const targetTop = Math.max(0, node.y - canvasWrap.clientHeight / 2 + nodeHeight / 2);
+      canvasWrap.scrollTo({
+        left: targetLeft,
+        top: targetTop,
+        behavior: "smooth"
+      });
+    }
+
+    function refreshToolbarState() {
+      const selectedNode = byId(selectedId);
+      const canFocus = selectedNode?.kind === "feature";
+      focusFeatureBtn.disabled = !canFocus;
+      focusFeatureBtn.textContent = canFocus ? "Focus selected feature" : "Select a feature to focus";
+      showAllBtn.classList.toggle("active", showAllEdges);
+      focusFeatureBtn.classList.toggle("active", !showAllEdges && canFocus);
+    }
+
+    function applyLanePositions() {
+      nodes.forEach((node) => {
+        const lane = lanes.find((item) => item.key === node.lane);
+        node.y = lane ? lane.y : 70;
+      });
+    }
+
+    function draw() {
+      const laneTop = 30;
+      const laneHeight = 210;
+      const nodeWidth = 220;
+      const nodeHeight = 78;
+      applyLanePositions();
+      const related = byId(selectedId)?.kind === "feature" ? relatedNodeIds(selectedId) : new Set([selectedId]);
+
+      const laneMarkup = lanes.map((lane, index) => `
+        <g>
+          <rect class="lane-band" x="30" y="${laneTop + index * 260}" width="2050" height="${laneHeight}" />
+          <text class="lane-label" x="52" y="${laneTop + index * 260 + 24}">${lane.label}</text>
+        </g>
+      `).join("");
+
+      const edgeMarkup = edges.map(([from, to]) => {
+        const a = byId(from);
+        const b = byId(to);
+        if (!a || !b) return "";
+        const visible = showAllEdges || (related.has(from) && related.has(to));
+        if (!visible) return "";
+        const isHighlight = selectedId === from || selectedId === to || (related.has(from) && related.has(to) && byId(selectedId)?.kind === "feature");
+        const legendOpacity = selectedLegendKind
+          ? (matchesLegendKind(a) || matchesLegendKind(b) ? 0.8 : 0.08)
+          : 1;
+        const x1 = a.x + nodeWidth;
+        const y1 = a.y + nodeHeight / 2;
+        const x2 = b.x;
+        const y2 = b.y + nodeHeight / 2;
+        return `<path class="edge ${isHighlight ? "highlight" : ""}" opacity="${legendOpacity}" d="M ${x1} ${y1} C ${x1 + 70} ${y1}, ${x2 - 70} ${y2}, ${x2} ${y2}" />`;
+      }).join("");
+
+      const nodeMarkup = nodes.map((node) => {
+        const active = node.id === selectedId;
+        const match = matchesSearch(node);
+        const dimmedByFocus = !showAllEdges && byId(selectedId)?.kind === "feature" && !related.has(node.id);
+        const dimmedByLegend = !matchesLegendKind(node);
+        const dimmed = dimmedByFocus || dimmedByLegend;
+        return `
+          <g class="node ${node.kind} ${active ? "active" : ""} ${match ? "match" : ""}" data-id="${node.id}" opacity="${dimmed ? 0.28 : 1}">
+            <rect x="${node.x}" y="${node.y}" width="${nodeWidth}" height="${nodeHeight}" />
+            <text class="kind" x="${node.x + 14}" y="${node.y + 20}">${escapeXml(node.kind)}</text>
+            <text class="title" x="${node.x + 14}" y="${node.y + 45}">${escapeXml(safeShorten(node.title))}</text>
+            <text class="kind" x="${node.x + 14}" y="${node.y + 64}">${escapeXml(safeShorten(node.path.split("/").pop().split("\\").pop(), 30))}</text>
+          </g>
+        `;
+      }).join("");
+
+      svg.innerHTML = `
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(96,125,139,0.52)"></path>
+          </marker>
+        </defs>
+        ${laneMarkup}
+        ${edgeMarkup}
+        ${nodeMarkup}
+      `;
+
+      svg.querySelectorAll("[data-id]").forEach((el) => {
+        el.setAttribute("tabindex", "0");
+        el.setAttribute("role", "button");
+        el.setAttribute("aria-label", `View ${el.getAttribute("data-id")} details`);
+        el.addEventListener("click", () => {
+          selectedId = el.getAttribute("data-id");
+          if (byId(selectedId)?.kind === "feature") {
+            showAllEdges = false;
+          }
+          renderDetails(byId(selectedId));
+          refreshToolbarState();
+          draw();
+          scrollNodeIntoView(byId(selectedId));
+        });
+        el.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            selectedId = el.getAttribute("data-id");
+            if (byId(selectedId)?.kind === "feature") {
+              showAllEdges = false;
+            }
+            renderDetails(byId(selectedId));
+            refreshToolbarState();
+            draw();
+            scrollNodeIntoView(byId(selectedId));
+          }
+        });
+      });
+    }
+
+    function reset() {
+      selectedId = "feature-phases";
+      searchTerm = "";
+      searchEl.value = "";
+      featureJumpEl.value = "";
+      showAllEdges = true;
+      selectedLegendKind = "";
+      renderDetails(byId(selectedId));
+      refreshLegendFilterState();
+      refreshToolbarState();
+      draw();
+      scrollNodeIntoView(byId(selectedId));
+    }
+
+    searchEl.addEventListener("input", (event) => {
+      searchTerm = event.target.value;
+      if (searchTerm.trim()) {
+        const match = nodes.find((node) => matchesSearch(node));
+        if (match) {
+          selectedId = match.id;
+          renderDetails(match);
+          refreshToolbarState();
+        }
+      }
+      draw();
+      if (searchTerm.trim()) {
+        scrollNodeIntoView(byId(selectedId));
+      }
+    });
+
+    featureJumpEl.addEventListener("change", (event) => {
+      if (!event.target.value) return;
+      selectedId = event.target.value;
+      renderDetails(byId(selectedId));
+      showAllEdges = false;
+      refreshToolbarState();
+      draw();
+      scrollNodeIntoView(byId(selectedId));
+    });
+
+    legendFilterEls.forEach((el) => {
+      el.addEventListener("click", () => {
+        const filter = el.getAttribute("data-legend-kind");
+        selectedLegendKind = selectedLegendKind === filter ? "" : filter;
+        refreshLegendFilterState();
+        draw();
+      });
+    });
+
+    showAllBtn.addEventListener("click", () => {
+      showAllEdges = true;
+      refreshToolbarState();
+      draw();
+    });
+
+    focusFeatureBtn.addEventListener("click", () => {
+      if (byId(selectedId)?.kind !== "feature") return;
+      showAllEdges = false;
+      refreshToolbarState();
+      draw();
+      scrollNodeIntoView(byId(selectedId));
+    });
+
+    resetBtn.addEventListener("click", reset);
+
+    renderDetails(byId(selectedId));
+    refreshLegendFilterState();
+    refreshToolbarState();
+    draw();
+  </script>
+</body>
+</html>

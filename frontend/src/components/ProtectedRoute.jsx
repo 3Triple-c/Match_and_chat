@@ -12,6 +12,7 @@ export default function ProtectedRoute({ children, role }) {
 
   if (!token) return <Navigate to="/login" replace />;
   if (!user) return <p>Loading session...</p>;
-  
+  if (role && user.role !== role) return <Navigate to="/dashboard" replace />;
+
   return children;
 }

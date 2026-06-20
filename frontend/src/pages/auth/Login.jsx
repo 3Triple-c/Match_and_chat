@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../stores/authStore";
 
 export default function Login() {
@@ -13,29 +13,44 @@ export default function Login() {
   };
   useEffect(() => {
     if (token && user) {
-      navigate("/matches", { replace: true });
+      navigate(user.role === "admin" ? "/admin" : "/dashboard", { replace: true });
     }
-  }, [token,user,navigate]);
+  }, [token, user, navigate]);
   const params = new URLSearchParams(window.location.search);
   const expired = params.get("expired");
 
   return (
-    <form onSubmit={submit}>
-      <h2>Login</h2>
-      <input
-        placeholder="Email"
-        onChange={e => setForm({ ...form, email: e.target.value })}
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        onChange={e => setForm({ ...form, password: e.target.value })}
-      />
-      <button disabled={loading}>Login</button>
-      {error && <p>{error}</p>}
-      {expired && (
-        <p style={{ color: "red" }}>Session expired. Please login again</p>
-      )}
-    </form>
+    <div className="auth-page">
+      <form onSubmit={submit} className="auth-card">
+        <h2>Welcome back</h2>
+        <p className="muted">Sign in to continue to your dashboard.</p>
+        <input
+          placeholder="Email"
+          onChange={e => setForm({ ...form, email: e.target.value })}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          onChange={e => setForm({ ...form, password: e.target.value })}
+        />
+        <button className="btn btn-primary" disabled={loading}>
+          Login
+        </button>
+        {error && <p className="error">{error}</p>}
+        {expired && (
+          <p className="error">Session expired. Please login again</p>
+        )}
+        <p className="muted auth-switch">
+          Don&apos;t have an account? <Link to="/register">Create one</Link>
+        </p>
+      </form>
+      <div className="auth-side">
+        <h3>Build calm, focused study sessions</h3>
+        <p className="muted">
+          Match by interest, chat in real time, and stay accountable in a calmer
+          study space.
+        </p>
+      </div>
+    </div>
   );
 }

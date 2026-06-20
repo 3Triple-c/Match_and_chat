@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
+import { STUDY_TIME_VALUES } from "../utils/studyTime.js";
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -27,6 +28,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: false,
     },
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+    },
     level: {
       type: String,
       required: true,
@@ -35,9 +41,16 @@ const userSchema = new mongoose.Schema(
       type: [String], //['maths']
       default: [],
     },
+    primaryInterest: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
+    },
     studyTime: {
       type: String,
       required: true,
+      enum: STUDY_TIME_VALUES,
     },
     location: {
       type: String,
@@ -58,8 +71,36 @@ const userSchema = new mongoose.Schema(
       default: true,
       //remember to set false
     },
+    studyStreak: {
+      type: Number,
+      default: 0,
+    },
+    longestStudyStreak: {
+      type: Number,
+      default: 0,
+    },
+    lastSessionCompletedAt: {
+      type: Date,
+      default: null,
+    },
+    lastMeaningfulVisitAt: {
+      type: Date,
+      default: null,
+    },
+    lastMeaningfulChatAt: {
+      type: Date,
+      default: null,
+    },
+    isOnlineOnApp: {
+      type: Boolean,
+      default: false,
+    },
+    lastSeenOnAppAt: {
+      type: Date,
+      default: null,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 // hash password
 userSchema.pre("save", async function () {

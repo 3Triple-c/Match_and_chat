@@ -7,9 +7,11 @@ export const useSocketStore = create(set => ({
 
   connect: token => {
     const socket = connectSocket(token);
+    socket.off("connect");
     socket.on("connect", () => {
       set({ connected: true });
     });
+    socket.off("disconnect");
     socket.on("disconnect", () => {
       set({ connected: false });
     });

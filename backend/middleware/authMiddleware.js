@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import { getJwtSecret } from "../utils/jwt.js";
 
 export const protect = async (req, res, next) => {
   let token;
@@ -13,7 +14,7 @@ export const protect = async (req, res, next) => {
     return res.status(401).json({ message: "Not authorized,no token" });
   }
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRETT);
+    const decoded = jwt.verify(token, getJwtSecret());
     // console.log("token: ",token)
     // console.log("decoded: ",decoded)
     // attach user (without password) to request object

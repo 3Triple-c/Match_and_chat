@@ -1,12 +1,14 @@
 import axios from "axios";
-import { useAuthStore } from "../stores/authStore";
+import storage from "../utils/storage";
+
+const runtimeHost = import.meta.env.VITE_API_URL || "/api";
 
 const api = axios.create({
-  baseURL: "http://localhost:5000/api",
+  baseURL: runtimeHost,
   withCredentials: true,
 });
 api.interceptors.request.use(config => {
-  const token = localStorage.getItem("token");
+  const token = storage.getItem("token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -16,7 +18,7 @@ api.interceptors.response.use(
   res => res,
   err => {
     if (err.response?.status === 401) {
-      localStorage.removeItem("token");
+      storage.removeItem("token");
       window.location.href = "/login?expired=true";
     }
     return Promise.reject(err);

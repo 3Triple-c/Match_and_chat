@@ -2,7 +2,7 @@ import api from "./axios.js";
 
 // fetching currently active match requeset for logged in User
 
-export const fetchActiveMatch = async () => {
+export const fetchActiveMatches = async () => {
   const res = await api.get("/match/active");
   return res.data;
 };

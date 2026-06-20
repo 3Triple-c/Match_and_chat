@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon index.js"
+    "start": "nodemon index.js",
+    "make-admin": "node scripts/makeAdmin.js"
   },
   "keywords": [],
   "author": "",
@@ -22,6 +23,7 @@
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.3",
     "nodemon": "^3.1.10",
+    "pdf-parse": "^1.1.1",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.2"
   }

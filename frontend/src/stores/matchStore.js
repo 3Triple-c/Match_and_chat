@@ -1,30 +1,30 @@
 import { create } from "zustand";
-// import axios from "axios";
-import { fetchActiveMatch } from "../api/match.api.js";
+import { fetchActiveMatches } from "../api/match.api.js";
 import api from "../api/axios.js";
+import { useGroupStore } from "./groupStore.js";
 
 // 08033481467
 // 08036541427
 const useMatchStore = create((set, get) => ({
-  activeMatch: null,
+  activeMatches: [],
   createdGroup: null,
   loading: false,
   error: null,
   isActing: false,
 
-  fetchActiveMatch: async () => {
+  fetchActiveMatches: async () => {
     set({ loading: true, error: null });
     try {
-      const data = await fetchActiveMatch();
+      const data = await fetchActiveMatches();
       set({
-        activeMatch: data,
-        createdGroup: null,
+        activeMatches: Array.isArray(data) ? data : [],
         loading: false,
+        error: null,
       });
       return data;
     } catch (err) {
       if (err.response?.status === 404) {
-        set({ activeMatch: null, loading: false });
+        set({ activeMatches: [], loading: false, error: null });
       } else {
         set({
           error: err.response?.data?.message || "Failed to fetch match",
@@ -39,7 +39,17 @@ const useMatchStore = create((set, get) => ({
     set({ isActing: true });
     try {
       const res = await api.put("/match/accept", { matchId });
-      set({ activeMatch: res.data.match });
+      await get().fetchActiveMatches();
+      if (res.data.group?._id) {
+        await useGroupStore.getState().fetchMyGroups();
+        set({ createdGroup: res.data.group });
+      }
+      return res.data;
+    } catch (err) {
+      set({
+        error: err.response?.data?.message || "Failed to accept match",
+      });
+      throw err;
     } finally {
       set({ isActing: false });
     }
@@ -49,12 +59,20 @@ const useMatchStore = create((set, get) => ({
     if (get().isActing) return;
     set({ isActing: true });
     try {
-      await api.put("/match/reject", { matchId });
-      set({ activeMatch: null });
+      const res = await api.put("/match/reject", { matchId });
+      await get().fetchActiveMatches();
+      return res.data;
+    } catch (err) {
+      set({
+        error: err.response?.data?.message || "Failed to reject match",
+      });
+      throw err;
     } finally {
       set({ isActing: false });
     }
   },
+
+  clearCreatedGroup: () => set({ createdGroup: null }),
 }));
 
 export default useMatchStore;

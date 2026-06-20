@@ -1,9 +1,25 @@
-import { useEffect } from "react";
 import AppRoutes from "./routes/AppRoutes";
 import { useAuthStore } from "./stores/authStore";
+import { useEffect } from "react";
+import { useSocketStore } from "./stores/socketStore";
+import AppErrorBoundary from "./components/AppErrorBoundary";
 
 function App() {
-  return <AppRoutes />;
+  const token = useAuthStore(state => state.token);
+  const socket = useSocketStore(state => state.socket);
+  const connect = useSocketStore(state => state.connect);
+
+  useEffect(() => {
+    if (token && !socket) {
+      connect(token);
+    }
+  }, [token, socket, connect]);
+
+  return (
+    <AppErrorBoundary>
+      <AppRoutes />
+    </AppErrorBoundary>
+  );
 }
 
 export default App;
